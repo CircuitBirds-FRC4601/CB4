@@ -6,7 +6,7 @@ private:
 	SendableChooser *chooser;
 	const std::string autoNameDefault = "Default";
 	const std::string autoNameCustom = "My Auto";
-	double rightgo, leftgo, ax, ay, az;
+	double rightgo, leftgo, ax, ay, az, lift;
 	std::string autoSelected;
 	BuiltInAccelerometer *accel = new BuiltInAccelerometer();
 	Joystick *rightDrive = new Joystick(0);
@@ -15,7 +15,10 @@ private:
 	Talon *fLeft = new Talon(1);
 	Talon *bRight = new Talon(2);
 	Talon *bLeft = new Talon(3);
+	Talon *lifter = new Talon(4);
 	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
+
+
 
 
 
@@ -70,17 +73,24 @@ private:
 		leftgo  = leftDrive->GetY();
 		rightgo=.6*rightgo;
 		leftgo = .6*leftgo;
-		robotDrive->TankDrive(rightgo, rightgo);
+		robotDrive->TankDrive(rightgo, leftgo);
 		ax = accel-> GetX();
 		ay = accel-> GetY();
 		az = accel-> GetZ();
 		SmartDashboard::PutData("Auto Modes", chooser);
-		SmartDashboard::PutData("Paul is a potato", chooser);
 		SmartDashboard::PutNumber("ax",ax);
 		SmartDashboard::PutNumber("ay",ay);
 		SmartDashboard::PutNumber("az",az);
+		bool triggerRight = rightDrive->GetRawButton(1);
+		bool triggerLeft = leftDrive->GetRawButton(1);
+		SmartDashboard::PutBoolean("trigger", triggerRight);
+		if(triggerRight || triggerLeft){
+			lifter->Set(.5);
+		}
+		else{
+			lifter->Set(0);
+		}
 	}
-
 	void TestPeriodic()
 	{
 		lw->Run();
