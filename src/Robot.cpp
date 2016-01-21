@@ -1,5 +1,4 @@
 #include "WPILib.h"
-#include <Joystick.h>
 
 class Robot: public IterativeRobot
 {
@@ -8,9 +7,13 @@ private:
 	SendableChooser *chooser;
 	const std::string autoNameDefault = "Default";
 	const std::string autoNameCustom = "My Auto";
+	double rightgo;
+	double leftgo;
 	std::string autoSelected;
 	Joystick *rightDrive = new Joystick(0);
+	//Left
 	Joystick *leftDrive  = new Joystick(1);
+	//Right
 	Talon *fRight = new Talon(0);
 	Talon *fLeft = new Talon(1);
 	Talon *bRight = new Talon(2);
@@ -66,8 +69,16 @@ private:
 
 	void TeleopPeriodic()
 	{
-		rightgo = rightDrive::GetRawAxis 	( 	uint32_t  	axis	);
-		robotDrive->TankDrive(-.7,.7);
+
+		//Left = Motor 1 and 3
+		//Right = Motor 0 and 2
+
+		rightgo = rightDrive->GetY();
+		leftgo  = leftDrive->GetY();
+		rightgo = .6*rightgo;
+		leftgo  = .6*leftgo;
+		robotDrive->TankDrive(rightgo,leftgo);
+
 	}
 
 	void TestPeriodic()
