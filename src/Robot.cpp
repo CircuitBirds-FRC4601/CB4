@@ -62,7 +62,7 @@ private:
 	{
 
 	}
-	
+
 	void TeleopPeriodic()
 	{
 
@@ -75,6 +75,7 @@ private:
 		ay = accel-> GetY();
 		az = accel-> GetZ();
 		SmartDashboard::PutData("Auto Modes", chooser);
+		SmartDashboard::PutData("Paul is a potato", chooser);
 		SmartDashboard::PutNumber("ax",ax);
 		SmartDashboard::PutNumber("ay",ay);
 		SmartDashboard::PutNumber("az",az);
