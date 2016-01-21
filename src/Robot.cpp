@@ -1,5 +1,4 @@
 #include "WPILib.h"
-
 class Robot: public IterativeRobot
 {
 private:
@@ -7,13 +6,11 @@ private:
 	SendableChooser *chooser;
 	const std::string autoNameDefault = "Default";
 	const std::string autoNameCustom = "My Auto";
-	double rightgo;
-	double leftgo;
+	double rightgo, leftgo, ax, ay, az;
 	std::string autoSelected;
+	BuiltInAccelerometer *accel = new BuiltInAccelerometer();
 	Joystick *rightDrive = new Joystick(0);
-	//Left
 	Joystick *leftDrive  = new Joystick(1);
-	//Right
 	Talon *fRight = new Talon(0);
 	Talon *fLeft = new Talon(1);
 	Talon *bRight = new Talon(2);
@@ -27,7 +24,6 @@ private:
 		chooser = new SendableChooser();
 		chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
 		chooser->AddObject(autoNameCustom, (void*)&autoNameCustom);
-		SmartDashboard::PutData("Auto Modes", chooser);
 	}
 
 
@@ -52,7 +48,7 @@ private:
 			//Default Auto goes here
 		}
 	}
-
+	//rightgo
 	void AutonomousPeriodic()
 	{
 		if(autoSelected == autoNameCustom){
@@ -66,19 +62,22 @@ private:
 	{
 
 	}
-
+	
 	void TeleopPeriodic()
 	{
 
-		//Left = Motor 1 and 3
-		//Right = Motor 0 and 2
-
 		rightgo = rightDrive->GetY();
 		leftgo  = leftDrive->GetY();
-		rightgo = .6*rightgo;
-		leftgo  = .6*leftgo;
-		robotDrive->TankDrive(rightgo,leftgo);
-
+		rightgo=.6*rightgo;
+		leftgo = .6*leftgo;
+		robotDrive->TankDrive(rightgo, rightgo);
+		ax = accel-> GetX();
+		ay = accel-> GetY();
+		az = accel-> GetZ();
+		SmartDashboard::PutData("Auto Modes", chooser);
+		SmartDashboard::PutNumber("ax",ax);
+		SmartDashboard::PutNumber("ay",ay);
+		SmartDashboard::PutNumber("az",az);
 	}
 
 	void TestPeriodic()
