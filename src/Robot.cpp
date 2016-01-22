@@ -6,8 +6,9 @@ private:
 	SendableChooser *chooser;
 	const std::string autoNameDefault = "Default";
 	const std::string autoNameCustom = "My Auto";
-	double rightDrive, leftDrive, ax, ay, az, lift;
+	double rightDrive, leftDrive, ax, ay, az, lift, dummy, dummy1;
 	std::string autoSelected;
+	Timer *timer = new Timer();
 	BuiltInAccelerometer *accel = new BuiltInAccelerometer();
 	Joystick *rightStick = new Joystick(0);
 	Joystick *leftStick  = new Joystick(1);
@@ -16,12 +17,8 @@ private:
 	Talon *bRight = new Talon(2);
 	Talon *bLeft = new Talon(3);
 	Talon *pickup = new Talon(4);
+	DigitalOutput *led1 = new DigitalOutput(1);
 	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
-
-
-
-
-
 	void RobotInit()
 	{
 		chooser = new SendableChooser();
@@ -51,13 +48,23 @@ private:
 			//Default Auto goes here
 		}
 	}
-	//rightgo
 	void AutonomousPeriodic()
 	{
 		if(autoSelected == autoNameCustom){
 			//Custom Auto goes here
+			dummy++;
 		} else {
 			//Default Auto goes here
+			timer->Start();
+			dummy1++;
+			if(timer<10){
+			pickup->Set(.1);
+			}
+			else{
+				pickup->Set(0);
+			}
+			SmartDashboard::PutNumber("dummy",dummy);
+			SmartDashboard::PutNumber("dummy1",dummy1);
 		}
 	}
 
@@ -68,7 +75,6 @@ private:
 
 	void TeleopPeriodic()
 	{
-
 		rightDrive = rightStick->GetY();
 		leftDrive  = leftStick->GetY();
 		rightDrive = .6*rightDrive;
@@ -83,20 +89,30 @@ private:
 		SmartDashboard::PutNumber("az",az);
 		bool triggerRight = rightStick->GetRawButton(1);
 		bool triggerLeft = leftStick->GetRawButton(1);
+		bool buttonLed = rightStick->GetRawButton(2);
 		SmartDashboard::PutBoolean("trigger", triggerRight);
 		SmartDashboard::PutBoolean("trigger", triggerLeft);
+		SmartDashboard::PutBoolean("buttonLed", buttonLed);
+
 		if(triggerRight){
-			pickup->Set(.6);
+			pickup->Set(1);
 		}
 		else{
 			pickup->Set(0);
 		}
 
 		if(triggerLeft){
-			pickup->Set(-.6);
+			pickup->Set(-1);
 		}
 		else{
+		}
 
+		if(buttonLed){
+			led1->Pulse(1);
+
+		}
+		else{
+			led1->Pulse(0);
 		}
 	}
 	void TestPeriodic()
