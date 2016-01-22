@@ -6,7 +6,7 @@ private:
 	SendableChooser *chooser;
 	const std::string autoNameDefault = "Default";
 	const std::string autoNameCustom = "My Auto";
-	double rightgo, leftgo, ax, ay, az, lift;
+	double rightDrive, leftDrive, ax, ay, az, lift;
 	std::string autoSelected;
 	BuiltInAccelerometer *accel = new BuiltInAccelerometer();
 	Joystick *rightStick = new Joystick(0);
@@ -69,11 +69,11 @@ private:
 	void TeleopPeriodic()
 	{
 
-		rightgo = rightStick->GetY();
-		leftgo  = leftStick->GetY();
-		rightgo = .6*rightgo;
-		leftgo  = .6*leftgo;
-		robotDrive->TankDrive(rightgo, leftgo);
+		rightDrive = rightStick->GetY();
+		leftDrive  = leftStick->GetY();
+		rightDrive = .6*rightDrive;
+		leftDrive  = .6*leftDrive;
+		robotDrive->TankDrive(rightDrive, leftDrive);
 		ax = accel-> GetX();
 		ay = accel-> GetY();
 		az = accel-> GetZ();
