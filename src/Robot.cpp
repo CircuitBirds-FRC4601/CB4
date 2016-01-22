@@ -86,14 +86,14 @@ private:
 		SmartDashboard::PutBoolean("trigger", triggerRight);
 		SmartDashboard::PutBoolean("trigger", triggerLeft);
 		if(triggerRight){
-			pickup->Set(.1);
+			pickup->Set(.6);
 		}
 		else{
 			pickup->Set(0);
 		}
 
 		if(triggerLeft){
-			pickup->Set(-.1);
+			pickup->Set(-.6);
 		}
 		else{
 
