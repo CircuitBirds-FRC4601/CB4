@@ -7,4 +7,5 @@ Please fork this code to make changes.
 
 ##TODO:
 - ~~Make / find eclipse compatible .gitignore, which is needed so that code can be shared without breaking.~~
-- Everyone needs to get a test commit merged. 
+- ~~Everyone needs to get a test commit merged. 
+- Make awesome code and keep our robot "happy".
