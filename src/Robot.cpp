@@ -84,8 +84,9 @@ private:
 		bool triggerRight = rightDrive->GetRawButton(1);
 		bool triggerLeft = leftDrive->GetRawButton(1);
 		SmartDashboard::PutBoolean("trigger", triggerRight);
+		SmartDashboard::PutBoolean("trigger", triggerLeft);
 		if(triggerRight || triggerLeft){
-			lifter->Set(.5);
+			lifter->Set(.3);
 		}
 		else{
 			lifter->Set(0);
