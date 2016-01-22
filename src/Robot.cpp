@@ -85,11 +85,18 @@ private:
 		bool triggerLeft = leftStick->GetRawButton(1);
 		SmartDashboard::PutBoolean("trigger", triggerRight);
 		SmartDashboard::PutBoolean("trigger", triggerLeft);
-		if(triggerRight || triggerLeft){
-			pickup->Set(.3);
+		if(triggerRight){
+			pickup->Set(.1);
 		}
 		else{
 			pickup->Set(0);
+		}
+
+		if(triggerLeft){
+			pickup->Set(-.1);
+		}
+		else{
+
 		}
 	}
 	void TestPeriodic()
