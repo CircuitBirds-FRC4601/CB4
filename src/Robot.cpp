@@ -15,7 +15,7 @@ private:
 	Talon *fLeft = new Talon(1);
 	Talon *bRight = new Talon(2);
 	Talon *bLeft = new Talon(3);
-	Talon *lifter = new Talon(4);
+	Talon *pickup = new Talon(4);
 	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
 
 
@@ -71,8 +71,8 @@ private:
 
 		rightgo = rightDrive->GetY();
 		leftgo  = leftDrive->GetY();
-		rightgo=.6*rightgo;
-		leftgo = .6*leftgo;
+		rightgo = .6*rightgo;
+		leftgo  = .6*leftgo;
 		robotDrive->TankDrive(rightgo, leftgo);
 		ax = accel-> GetX();
 		ay = accel-> GetY();
@@ -86,10 +86,10 @@ private:
 		SmartDashboard::PutBoolean("trigger", triggerRight);
 		SmartDashboard::PutBoolean("trigger", triggerLeft);
 		if(triggerRight || triggerLeft){
-			lifter->Set(.3);
+			pickup->Set(.3);
 		}
 		else{
-			lifter->Set(0);
+			pickup->Set(0);
 		}
 	}
 	void TestPeriodic()
