@@ -9,8 +9,8 @@ private:
 	double rightgo, leftgo, ax, ay, az, lift;
 	std::string autoSelected;
 	BuiltInAccelerometer *accel = new BuiltInAccelerometer();
-	Joystick *rightDrive = new Joystick(0);
-	Joystick *leftDrive  = new Joystick(1);
+	Joystick *rightStick = new Joystick(0);
+	Joystick *leftStick  = new Joystick(1);
 	Talon *fRight = new Talon(0);
 	Talon *fLeft = new Talon(1);
 	Talon *bRight = new Talon(2);
@@ -69,8 +69,8 @@ private:
 	void TeleopPeriodic()
 	{
 
-		rightgo = rightDrive->GetY();
-		leftgo  = leftDrive->GetY();
+		rightgo = rightStick->GetY();
+		leftgo  = leftStick->GetY();
 		rightgo = .6*rightgo;
 		leftgo  = .6*leftgo;
 		robotDrive->TankDrive(rightgo, leftgo);
@@ -81,8 +81,8 @@ private:
 		SmartDashboard::PutNumber("ax",ax);
 		SmartDashboard::PutNumber("ay",ay);
 		SmartDashboard::PutNumber("az",az);
-		bool triggerRight = rightDrive->GetRawButton(1);
-		bool triggerLeft = leftDrive->GetRawButton(1);
+		bool triggerRight = rightStick->GetRawButton(1);
+		bool triggerLeft = leftStick->GetRawButton(1);
 		SmartDashboard::PutBoolean("trigger", triggerRight);
 		SmartDashboard::PutBoolean("trigger", triggerLeft);
 		if(triggerRight || triggerLeft){
