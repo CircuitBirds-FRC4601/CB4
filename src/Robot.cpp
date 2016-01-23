@@ -6,12 +6,12 @@ private:
 	SendableChooser *chooser;
 	const std::string autoNameDefault = "Default";
 	const std::string autoNameCustom = "My Auto";
-	double rightDrive, leftDrive, ax, ay, az, lift, dummy, dummy1;
+	double rightDrive, leftDrive, ax, ay, az, lift, dummy;
 	std::string autoSelected;
-	Timer *timer = new Timer();
 	BuiltInAccelerometer *accel = new BuiltInAccelerometer();
 	Joystick *rightStick = new Joystick(0);
 	Joystick *leftStick  = new Joystick(1);
+	Timer *timer =new Timer();
 	Talon *fRight = new Talon(0);
 	Talon *fLeft = new Talon(1);
 	Talon *bRight = new Talon(2);
@@ -50,21 +50,29 @@ private:
 	}
 	void AutonomousPeriodic()
 	{
+		timer->Start();
 		if(autoSelected == autoNameCustom){
 			//Custom Auto goes here
-			dummy++;
 		} else {
 			//Default Auto goes here
-			timer->Start();
-			dummy1++;
-			if(timer<10){
+			if(timer->Get()<=5)
+			{
 			pickup->Set(.1);
+			rightDrive=1;
+			leftDrive=1;
+			rightDrive = .6;
+			leftDrive  = .6;
+			robotDrive->TankDrive(rightDrive, leftDrive);
+			dummy++;
 			}
-			else{
+		else
+			{
+			rightDrive = 0;
+			leftDrive = 0;
+			robotDrive->TankDrive(rightDrive, leftDrive);
 				pickup->Set(0);
 			}
 			SmartDashboard::PutNumber("dummy",dummy);
-			SmartDashboard::PutNumber("dummy1",dummy1);
 		}
 	}
 
@@ -77,8 +85,8 @@ private:
 	{
 		rightDrive = rightStick->GetY();
 		leftDrive  = leftStick->GetY();
-		rightDrive = .6*rightDrive;
-		leftDrive  = .6*leftDrive;
+		rightDrive = .7*rightDrive;
+		leftDrive  = .7*leftDrive;
 		robotDrive->TankDrive(rightDrive, leftDrive);
 		ax = accel-> GetX();
 		ay = accel-> GetY();
@@ -88,7 +96,7 @@ private:
 		SmartDashboard::PutNumber("ay",ay);
 		SmartDashboard::PutNumber("az",az);
 		bool triggerRight = rightStick->GetRawButton(1);
-		bool triggerLeft = leftStick->GetRawButton(1);
+		bool triggerLeft = leftStick->GetRawButton(1); // any idea why these are throwing errors? seems to not mess with build or clean
 		bool buttonLed = rightStick->GetRawButton(2);
 		SmartDashboard::PutBoolean("trigger", triggerRight);
 		SmartDashboard::PutBoolean("trigger", triggerLeft);
