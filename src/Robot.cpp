@@ -17,6 +17,7 @@ private:
 	Joystick *leftJoystick  = new Joystick(1);
 
 	double rightDrive, leftDrive, a_x, a_y, a_z;
+
 	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
 	Talon *fRight = new Talon(0);
 	Talon *fLeft  = new Talon(1);
@@ -39,7 +40,6 @@ private:
 				if(imaqError != IMAQdxErrorSuccess) {
 					DriverStation::ReportError("IMAQdxOpenCamera error: " + std::to_string((long)imaqError) + "\n");
 							}
-
 	}
 		chooser = new SendableChooser();
 		chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
@@ -49,7 +49,6 @@ private:
 	void OperatorControl(){
 
 			IMAQdxStartAcquisition(session);
-
 
 			while(IsOperatorControl() && IsEnabled()) {
 				IMAQdxGrab(session, frame, true, NULL);
@@ -63,7 +62,6 @@ private:
 			}
 
 			IMAQdxStopAcquisition(session);
-
 	}
 
 	/**
@@ -95,6 +93,11 @@ private:
 	}
 	void TeleopPeriodic()
 	{
+		bool triggerRight = rightJoystick->GetRawButton(1);
+		bool triggerLeft = leftJoystick->GetRawButton(1);
+		bool buttonLed = rightJoystick->GetRawButton(2);
+		bool buttonLed2 = leftJoystick->GetRawButton(2);
+
 		rightDrive = rightJoystick->GetY();
 		leftDrive  = leftJoystick->GetY();
 		rightDrive = .6*rightDrive;
@@ -107,13 +110,6 @@ private:
 		SmartDashboard::PutNumber("a_x",a_x);
 		SmartDashboard::PutNumber("a_y",a_y);
 		SmartDashboard::PutNumber("a_z",a_z);
-
-		bool triggerRight = rightJoystick->GetRawButton(1);
-		bool triggerLeft = leftJoystick->GetRawButton(1);
-		bool buttonLed = rightJoystick->GetRawButton(2);
-		bool buttonLed2 = leftJoystick->GetRawButton(2);
-
-
 
 		SmartDashboard::PutData("Auto Modes", chooser);
 
@@ -136,6 +132,11 @@ private:
 		}
 		else{
 		}
+
+	//TODO- GET A GOOD GOD-DAMN LED!!!!!
+		if(buttonLed || buttonLed2){
+			led1->Pulse(1);
+		}
 	}
 
 
@@ -145,5 +146,3 @@ private:
 	}
 };
 START_ROBOT_CLASS(Robot)
-
-
