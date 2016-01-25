@@ -6,24 +6,30 @@ private:
 	SendableChooser *chooser;
 	const std::string autoNameDefault = "Default";
 	const std::string autoNameCustom = "My Auto";
-	double rightDrive, leftDrive, ax, ay, az, lift, dummy, dummy1;
+
 	std::string autoSelected;
+
 	Timer *timer = new Timer();
+
 	BuiltInAccelerometer *accel = new BuiltInAccelerometer();
-	Joystick *rightStick = new Joystick(0);
-	Joystick *leftStick  = new Joystick(1);
-	Talon *fRight = new Talon(0);
-	Talon *fLeft = new Talon(1);
-	Talon *bRight = new Talon(2);
-	Talon *bLeft = new Talon(3);
-	Talon *pickup = new Talon(4);
-	DigitalOutput *led1 = new DigitalOutput(1);
+
+	Joystick *rightJoystick = new Joystick(0);
+	Joystick *leftJoystick  = new Joystick(1);
+
+	double rightDrive, leftDrive, a_x, a_y, a_z;
 	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
+	Talon *fRight = new Talon(0);
+	Talon *fLeft  = new Talon(1);
+	Talon *bRight = new Talon(2);
+	Talon *bLeft  = new Talon(3);
+	Talon *pickup = new Talon(4);
+
+	DigitalInput *limitswitch = new DigitalInput(2);
+	DigitalOutput *led1 = new DigitalOutput(1);
+
 	IMAQdxSession session;
 	Image *frame;
 	IMAQdxError imaqError;
-
-
 
 	void RobotInit() override{
 	{
@@ -35,15 +41,9 @@ private:
 							}
 
 	}
-
-
-
-
 		chooser = new SendableChooser();
 		chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
 		chooser->AddObject(autoNameCustom, (void*)&autoNameCustom);
-
-
 	}
 
 	void OperatorControl(){
@@ -89,54 +89,39 @@ private:
 	}
 	void AutonomousPeriodic()
 	{
-		//if(autoSelected == autoNameCustom){
-			//Custom Auto goes here
-			//dummy++;
-		//} else {
-			//Default Auto goes here
-			//timer->Start();
-			//dummy1++;
-
-			//pickup->Set(.1);
-			//}
-			//else{
-				//pickup->Set(0);
-			//}
-			//SmartDashboard::PutNumber("dummy",dummy);
-			//SmartDashboard::PutNumber("dummy1",dummy1);
-		//}
 	}
-
-
-
-
-
-
 	void TeleopInit()
 	{
-
 	}
-
 	void TeleopPeriodic()
 	{
-		rightDrive = rightStick->GetY();
-		leftDrive  = leftStick->GetY();
+		rightDrive = rightJoystick->GetY();
+		leftDrive  = leftJoystick->GetY();
 		rightDrive = .6*rightDrive;
 		leftDrive  = .6*leftDrive;
 		robotDrive->TankDrive(rightDrive, leftDrive);
-		ax = accel-> GetX();
-		ay = accel-> GetY();
-		az = accel-> GetZ();
+
+		a_x = accel-> GetX();
+		a_y = accel-> GetY();
+		a_z = accel-> GetZ();
+		SmartDashboard::PutNumber("a_x",a_x);
+		SmartDashboard::PutNumber("a_y",a_y);
+		SmartDashboard::PutNumber("a_z",a_z);
+
+		bool triggerRight = rightJoystick->GetRawButton(1);
+		bool triggerLeft = leftJoystick->GetRawButton(1);
+		bool buttonLed = rightJoystick->GetRawButton(2);
+		bool buttonLed2 = leftJoystick->GetRawButton(2);
+
+
+
 		SmartDashboard::PutData("Auto Modes", chooser);
-		SmartDashboard::PutNumber("ax",ax);
-		SmartDashboard::PutNumber("ay",ay);
-		SmartDashboard::PutNumber("az",az);
-		bool triggerRight = rightStick->GetRawButton(1);
-		bool triggerLeft = leftStick->GetRawButton(1);
-		bool buttonLed = rightStick->GetRawButton(2);
+
 		SmartDashboard::PutBoolean("trigger", triggerRight);
 		SmartDashboard::PutBoolean("trigger", triggerLeft);
-		SmartDashboard::PutBoolean("buttonLed", buttonLed);
+		SmartDashboard::PutBoolean("Led", triggerLeft);
+		SmartDashboard::PutBoolean("Led", triggerRight);
+
 
 		if(triggerRight){
 			pickup->Set(1);
@@ -145,29 +130,20 @@ private:
 			pickup->Set(0);
 		}
 
+
 		if(triggerLeft){
 			pickup->Set(-1);
 		}
 		else{
 		}
-
-		if(buttonLed){
-			led1->Pulse(1);
-
-		}
-		else{
-			led1->Pulse(0);
-		}
 	}
+
+
 	void TestPeriodic()
 	{
 		lw->Run();
 	}
-
-
-
 };
-
-
 START_ROBOT_CLASS(Robot)
+
 
