@@ -1,4 +1,15 @@
   #include "WPILib.h"
+/* 
+    Circuit Birds 4 Robot Code
+  
+  CURRENT STATUS: failures at run time associated with joystick interrupt handling. (Dr. C., 1/25/2016) 
+  TODO:
+     fix
+     test shooter code
+     magnetometer calibration/testing
+     Phase sensitive detection code. 
+     The list goes on and on.... 
+*/ 
 class Robot: public IterativeRobot
 {
 private:
@@ -10,23 +21,25 @@ private:
 	std::string autoSelected;
 
 	Timer *timer = new Timer();
-
-	BuiltInAccelerometer *accel = new BuiltInAccelerometer();
-
 	Joystick *rightJoystick = new Joystick(0);
 	Joystick *leftJoystick  = new Joystick(1);
 
 	double rightDrive, leftDrive, a_x, a_y, a_z;
-
+	double ax, ay, az, bx,by, pd, boffsetx, boffsety, bscalex, bscaley, heading, pi=4.0*atan(1.0) ; //DrC defines
 	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
 	Talon *fRight = new Talon(0);
 	Talon *fLeft  = new Talon(1);
 	Talon *bRight = new Talon(2);
 	Talon *bLeft  = new Talon(3);
 	Talon *pickup = new Talon(4);
+	Talon *shooter = new Talon(5);
 
 	DigitalInput *limitswitch = new DigitalInput(2);
 	DigitalOutput *led1 = new DigitalOutput(1);
+	AnalogInput *Bx = new AnalogInput(0); //DrC  magnetic x component
+        AnalogInput *By = new AnalogInput(1); //DrC  magnetic y component
+        AnalogInput *Photo = new AnalogInput(2); //DrC  photodiode response
+        BuiltInAccelerometer *accel = new BuiltInAccelerometer(); //DrC what it is...what it is...
 
 	IMAQdxSession session;
 	Image *frame;
@@ -90,6 +103,11 @@ private:
 	}
 	void TeleopInit()
 	{
+		// calibration data  -from DrC
+		boffsetx = 1.4;
+		boffsety = 1.2;
+		bscalex = 1.0;
+		bscaley = 1.0;
 	}
 	void TeleopPeriodic()
 	{
@@ -97,6 +115,7 @@ private:
 		bool triggerLeft = leftJoystick->GetRawButton(1);
 		bool buttonLed = rightJoystick->GetRawButton(2);
 		bool buttonLed2 = leftJoystick->GetRawButton(2);
+		bool buttonshooter = leftJoystick->GetRawButton(3);
 
 		rightDrive = rightJoystick->GetY();
 		leftDrive  = leftJoystick->GetY();
@@ -104,20 +123,25 @@ private:
 		leftDrive  = .6*leftDrive;
 		robotDrive->TankDrive(rightDrive, leftDrive);
 
-		a_x = accel-> GetX();
-		a_y = accel-> GetY();
-		a_z = accel-> GetZ();
-		SmartDashboard::PutNumber("a_x",a_x);
-		SmartDashboard::PutNumber("a_y",a_y);
-		SmartDashboard::PutNumber("a_z",a_z);
-
+		ax = accel-> GetX();//DrC   Sensor Section : get orientation of the robot WRT field co-ordinates.
+		ay = accel-> GetY();//DrC
+		az = accel-> GetZ();//DrC   ax ay az used to define down
+		bx = Bx -> GetVoltage();//DrC   Raw Readings
+		by = By -> GetVoltage(); //DrC
+        	pd = Photo -> GetVoltage(); //DrC
+			// here flatten response and assume that robot is level.
+		bx = (bx-boffsetx)*bscalex; //DrC
+		by = (by-boffsety)*bscaley; //DrC
+		heading = 180*atan(by/bx)/pi; //DrC
+		SmartDashboard::PutNumber("ax",ax); //DrC
+		SmartDashboard::PutNumber("ay",ay); //DrC
+		SmartDashboard::PutNumber("az",az); //DrC
+		SmartDashboard::PutNumber("heading", heading); //DrC
 		SmartDashboard::PutData("Auto Modes", chooser);
-
 		SmartDashboard::PutBoolean("trigger", triggerRight);
 		SmartDashboard::PutBoolean("trigger", triggerLeft);
 		SmartDashboard::PutBoolean("Led", triggerLeft);
 		SmartDashboard::PutBoolean("Led", triggerRight);
-
 
 		if(triggerRight){
 			pickup->Set(1);
@@ -132,8 +156,13 @@ private:
 		}
 		else{
 		}
-
-	//TODO- GET A GOOD GOD-DAMN LED!!!!!
+		if(buttonshooter){
+			shooter->Set(1);
+		}
+		else{
+			shooter->Set(0);
+		}
+	// Flashing the LED
 		if(buttonLed || buttonLed2){
 			led1->Pulse(1);
 		}
