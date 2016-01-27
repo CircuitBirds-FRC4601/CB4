@@ -1,15 +1,16 @@
   #include "WPILib.h"
-/* 
+  #include "Gamepad.h"
+/*
     Circuit Birds 4 Robot Code
-  
-  CURRENT STATUS: failures at run time associated with joystick interrupt handling. (Dr. C., 1/25/2016) 
+
+  CURRENT STATUS: failures at run time associated with joystick interrupt handling. (Dr. C., 1/25/2016)
   TODO:
      fix
      test shooter code
      magnetometer calibration/testing
-     Phase sensitive detection code. 
-     The list goes on and on.... 
-*/ 
+     Phase sensitive detection code.
+     The list goes on and on....
+*/
 class Robot: public IterativeRobot
 {
 private:
@@ -19,11 +20,10 @@ private:
 	const std::string autoNameCustom = "My Auto";
 
 	std::string autoSelected;
-
 	Timer *timer = new Timer();
 	Joystick *rightJoystick = new Joystick(0);
 	Joystick *leftJoystick  = new Joystick(1);
-
+	Joystick *xbox = new Joystick(3);
 	double rightDrive, leftDrive, a_x, a_y, a_z;
 	double ax, ay, az, bx,by, pd, boffsetx, boffsety, bscalex, bscaley, heading, pi=4.0*atan(1.0) ; //DrC defines
 	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
@@ -115,8 +115,7 @@ private:
 		bool triggerLeft = leftJoystick->GetRawButton(1);
 		bool buttonLed = rightJoystick->GetRawButton(2);
 		bool buttonLed2 = leftJoystick->GetRawButton(2);
-		bool buttonshooter = leftJoystick->GetRawButton(3);
-
+		bool buttonshooter = xbox->GetRawAxis(6);
 		rightDrive = rightJoystick->GetY();
 		leftDrive  = leftJoystick->GetY();
 		rightDrive = .6*rightDrive;
@@ -142,6 +141,7 @@ private:
 		SmartDashboard::PutBoolean("trigger", triggerLeft);
 		SmartDashboard::PutBoolean("Led", triggerLeft);
 		SmartDashboard::PutBoolean("Led", triggerRight);
+		SmartDashboard::PutBoolean("buttonShooter", buttonshooter);
 
 		if(triggerRight){
 			pickup->Set(1);
@@ -150,7 +150,7 @@ private:
 			pickup->Set(0);
 		}
 
-
+//
 		if(triggerLeft){
 			pickup->Set(-1);
 		}
