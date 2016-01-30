@@ -8,7 +8,7 @@
  	LiveWindow *lw = LiveWindow::GetInstance();
   	SendableChooser *chooser;
   	bool nitroL, nitroR;  //DrC, for speed boost in tank drive
-  	bool pickup_shoot, pickup_pickup; //***
+  	bool pickup_kickballout, pickup_pickup; //***
   	const std::string autoNameDefault = "Default";
   	const std::string autoNameCustom = "My Auto";
  	double leftgo,rightgo,speed, buttonShooter=0;  //DrC speed scales joysticks output to drive number
@@ -73,14 +73,16 @@
 		rightgo = -(speed+(1.0-speed)*(double)(nitroR))*rightgo;  //DrC for nitro drive
  		leftgo  = -(speed+(1.0-speed)*(double)(nitroL))*leftgo;   //DrC  ''
  		robotDrive->TankDrive(rightgo, leftgo);
- 		pickup_shoot = gamePad -> GetRawButton(5);//***
- 		pickup_pickup = gamePad -> GetRawButton(6);//***
- 		if(pickup_shoot){ //***
+ 		pickup_kickballout = gamePad -> GetRawButton(2);//***
+ 		pickup_pickup = gamePad -> GetRawButton(5);//***
+ 		if(pickup_kickballout){ //***
  			pickupShooter->TankDrive(.5, 0.0);//***
  		}
  		if(pickup_pickup){
  			pickupShooter->TankDrive(-.7,0.0);
  		}  //***
+ 		// right bumper speed up the wheel, right trigger  to shoot.
+
 // 		buttonShooter=gamePad->GetRawAxis(0);//E this would be the right trigger *may not be axis 0
  		ax = accel-> GetX();//DrC   Sensor Section : get orientation of the robot WRT field co-ordinates.
  		ay = accel-> GetY();//DrC
