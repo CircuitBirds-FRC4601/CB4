@@ -8,16 +8,16 @@
  	LiveWindow *lw = LiveWindow::GetInstance();
   	SendableChooser *chooser;
   	bool nitroL, nitroR;  //DrC, for speed boost in tank drive
-  	bool pickup_kickballout, pickup_pickup; //***
+  	bool pickup_pickup,shooter_spinup; //DrC
   	const std::string autoNameDefault = "Default";
   	const std::string autoNameCustom = "My Auto";
- 	double leftgo,rightgo,speed, buttonShooter=0;  //DrC speed scales joysticks output to drive number
- 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, pd, pi=4.0*atan(1.0); //DrC defines
+ 	double leftgo,rightgo,speed;  //DrC speed scales joysticks output to drive number
+ 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, pd, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, pickupWheel, shooter_shoot; //FIX
   	std::string autoSelected;
 
-  	Joystick *rightDrive = new Joystick(0,2,9);//***
-  	Joystick *leftDrive  = new Joystick(1,2,9);//***
-	Joystick *gamePad = new Joystick(2);//***
+  	Joystick *rightDrive = new Joystick(0,2,9);//DrC
+  	Joystick *leftDrive  = new Joystick(1,2,9);//DrC
+	Joystick *gamePad = new Joystick(2,6,9);//DrC
 
   	Talon *fRight = new Talon(1); // remaped all talons E and DrC
   	Talon *fLeft = new Talon(0);
@@ -73,17 +73,29 @@
 		rightgo = -(speed+(1.0-speed)*(double)(nitroR))*rightgo;  //DrC for nitro drive
  		leftgo  = -(speed+(1.0-speed)*(double)(nitroL))*leftgo;   //DrC  ''
  		robotDrive->TankDrive(rightgo, leftgo);
- 		pickup_kickballout = gamePad -> GetRawButton(2);//***
- 		pickup_pickup = gamePad -> GetRawButton(5);//***
- 		if(pickup_kickballout){ //***
- 			pickupShooter->TankDrive(.5, 0.0);//***
+ 		// Pickupwheel section 
+ 		pickup_kickballout = gamePad -> GetRawAxis(2);//DrC
+ 		pickup_pickup = gamePad -> GetRawButton(5);//DrC
+ 		if(abs(pickup_kickballout)>.1){ //DrC
+ 			pickupWheel = 0.5;
  		}
- 		if(pickup_pickup){
- 			pickupShooter->TankDrive(-.7,0.0);
- 		}  //***
+ 		else if(pickup_pickup){
+ 			pickupWheel = -0.7;
+ 		}
+ 		else{
+ 			pickupWheel=0.0;
+ 		}
  		// right bumper speed up the wheel, right trigger  to shoot.
-
-// 		buttonShooter=gamePad->GetRawAxis(0);//E this would be the right trigger *may not be axis 0
+ 		shooter_shoot = gamePad -> GetRawAxis(3);//DrC
+ 		shooter_spinup = gamePad -> GetRawButton(6);
+ 		if(abs(shooter_shoot)>.1){ //DrC
+ 			shooterWheel = 1.0;
+ 		 }
+ 		 else {//DrC reset it so can have three modes, forward, backwards and nothing! 
+ 			shooterWheel = 0.0;
+ 		 } 
+ 		pickupShooter->TankDrive(pickupWheel,shooterWheel); //DrC here run the wheels! 
+ 		//Sensor section Dr C
  		ax = accel-> GetX();//DrC   Sensor Section : get orientation of the robot WRT field co-ordinates.
  		ay = accel-> GetY();//DrC
  		az = accel-> GetZ();//DrC   ax ay az used to define down
@@ -102,9 +114,11 @@
  		SmartDashboard::PutNumber("pd", pd);
  		SmartDashboard::PutNumber("bx", bx);
  		SmartDashboard::PutNumber("by", by);
- 		SmartDashboard::PutNumber("rightgo",rightgo); //DrC
- 		SmartDashboard::PutNumber("leftgo",leftgo); //DrC
- 		SmartDashboard::PutNumber("az",az); //DrC
+ 		//SmartDashboard::PutNumber("rightgo",rightgo); //DrC
+ 		//SmartDashboard::PutNumber("leftgo",leftgo); //DrC
+ 		//SmartDashboard::PutNumber("kickballout",pickup_kickballout); //DrC
+ 		//SmartDashboard::PutNumber("Shooterwheelaxis", shooter_shoot);
+
   	}
   	void TestPeriodic()
  	{
