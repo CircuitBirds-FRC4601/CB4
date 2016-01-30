@@ -6,19 +6,20 @@
  private:
  	LiveWindow *lw = LiveWindow::GetInstance();
   	SendableChooser *chooser;
+  	bool nitroL, nitroR;  //DrC, for speed boost in tank drive
   	const std::string autoNameDefault = "Default";
   	const std::string autoNameCustom = "My Auto";
- 	double leftgo,rightgo,buttonShooter;
+ 	double leftgo,rightgo,speed, buttonShooter=0;  //DrC speed scales joysticks output to drive number
  	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, pd, pi=4.0*atan(1.0); //DrC defines
   	std::string autoSelected;
 
-  	Joystick *rightDrive = new Joystick(0);
-  	Joystick *leftDrive  = new Joystick(1);
-  	Joystick *gamePad = new Joystick(2,6,10);//E
+  	Joystick *rightDrive = new Joystick(0,2,9);
+  	Joystick *leftDrive  = new Joystick(1,2,9);
+//  	Joystick *gamePad = new Joystick(2,6,10);//E
 
-  	Talon *fRight = new Talon(0);// remaped all talons E
-  	Talon *fLeft = new Talon(2);
-  	Talon *bRight = new Talon(1);
+  	Talon *fRight = new Talon(1); // remaped all talons E and DrC
+  	Talon *fLeft = new Talon(0);
+  	Talon *bRight = new Talon(2);
   	Talon *bLeft = new Talon(3);
   	Talon *pickup = new Talon(4);//e
   	Talon *shooter = new Talon(5);//e
@@ -61,12 +62,15 @@
   	void TeleopPeriodic()
   	{
 
-  		rightgo = rightDrive->GetY();
- 		leftgo  = leftDrive->GetY();
- 		rightgo = .6*rightgo;
- 		leftgo  = .6*leftgo;
- 		robotDrive->TankDrive(rightDrive, leftDrive);
- 		buttonShooter=gamePad->GetRawAxis(0);//E this would be the right trigger *may not be axis 0
+  		rightgo = rightDrive-> GetRawAxis(1);
+ 		leftgo  = leftDrive-> GetRawAxis(1);
+ 		nitroR   = rightDrive-> GetRawButton(3);
+ 		nitroL   = leftDrive-> GetRawButton(3);
+ 		speed  = .6;
+		rightgo = -(speed+(1.0-speed)*(double)(nitroR))*rightgo;  //DrC for nitro drive
+ 		leftgo  = -(speed+(1.0-speed)*(double)(nitroL))*leftgo;   //DrC  ''
+ 		robotDrive->TankDrive(rightgo, leftgo);
+// 		buttonShooter=gamePad->GetRawAxis(0);//E this would be the right trigger *may not be axis 0
  		ax = accel-> GetX();//DrC   Sensor Section : get orientation of the robot WRT field co-ordinates.
  		ay = accel-> GetY();//DrC
  		az = accel-> GetZ();//DrC   ax ay az used to define down
@@ -89,9 +93,12 @@
  	    SmartDashboard::PutNumber("ay",ay); //DrC
  		SmartDashboard::PutNumber("az",az); //DrC
  		SmartDashboard::PutNumber("heading", heading); //DrC
- 		SmartDashboard::PutNumber("buttonShooter", buttonShooter);
-
-
+ 		SmartDashboard::PutNumber("pd", pd);
+ 		SmartDashboard::PutNumber("bx", bx);
+ 		SmartDashboard::PutNumber("by", by);
+ 		SmartDashboard::PutNumber("rightgo",rightgo); //DrC
+ 		SmartDashboard::PutNumber("leftgo",leftgo); //DrC
+ 		SmartDashboard::PutNumber("az",az); //DrC
   	}
   	void TestPeriodic()
  	{
