@@ -80,7 +80,7 @@
  				bx_avg=0.0;
  				by_avg=0.0;
  				samples = 20; //Dr.C.  for the number of stobes cycles used during phase sensitive detection.
- 				savg = .1; //Dr.C. for averaging the noise out of the shot wheel speed encoder.
+ 				savg = .3; //Dr.C. for averaging the noise out of the shot wheel speed encoder.
  				shotspeed = 0.0;
  				starget = .7; //DrC target speed for the shooterwheels encoder output
  				swindow = .1; // window (percent) of starget to be good to fire ball! here .1 = 10percent
@@ -118,8 +118,8 @@
  		// end of Strobey bit
  		// Pickupwheel section
  		pickup_kickballout = gamePad -> GetRawAxis(2);//DrC
- 		pickup_pickup = gamePad -> GetRawButton(5);//rC
- 		swheelspeed = shooterwheel->GetRaw();
+ 		pickup_pickup = gamePad -> GetRawButton(5);//DrC
+ 		swheelspeed = shooterwheel->GetRate(); //DrC , gets the signed speed of the shaft. Verified operation with the AMT103-V capacitive sensors, but probably works fine with the optical encoder. 
  		shotspeed = shotspeed*(1.0-savg)+savg*swheelspeed;
  		if (abs(shotspeed-starget)/starget<swindow){
  			speedgood=TRUE;
@@ -196,4 +196,3 @@
   // Robot button-software-electrical map
 
   //
-
