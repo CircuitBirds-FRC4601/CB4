@@ -1,18 +1,24 @@
 #include "WPILib.h"
-#include "Gamepad.h"
+//#include "Gamepad.h"  //DrC appears that you may not need this include as well...automatic?
 #include "DoubleSolenoid.h"
+//#include <stdio.h>   //DrC may not need this one. We may want to use it if we attemp fileI/O with the code.
+#include <unistd.h>  //DrC , needed just for the sleep() function...warning sleep() may not be threadsafe!
+/*      CB4 Robot Code, team 4601 (Canfield Ohio,the Circuit Birds)
+ *
+ *
+ */
   class Robot: public IterativeRobot
   {
-
  private:
  	LiveWindow *lw = LiveWindow::GetInstance();
   	SendableChooser *chooser;
   	bool nitroL, nitroR;  //DrC, for speed boost in tank drive
   	bool pickup_pickup,shooter_spinup, piston_buttonu,piston_buttond,button_led; //DrC
+  	int i, samples;
   	const std::string autoNameDefault = "Default";
   	const std::string autoNameCustom = "My Auto";
  	double leftgo,rightgo,speed;  //DrC speed scales joysticks output to drive number
- 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, pd, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, pickupWheel, shooter_shoot; //FIX
+ 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, pickupWheel, shooter_shoot; //FIX
   	std::string autoSelected;
 
   	DoubleSolenoid *piston = new DoubleSolenoid(0,1);
@@ -42,7 +48,7 @@
   	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
   	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter); //***
  void AutonomousInit() {
-	 howdy->Enabled();
+	    howdy->Enabled();
 		lwheel->Reset();
 		rwheel->Reset();
 		piston1->Set(DoubleSolenoid::Value::kOff);
@@ -70,6 +76,10 @@
  				boffsety = 1.2;
  				bscalex = 1.0;
  				bscaley = 1.0;
+ 				baveraging = 0.02;  //running averaging in B field determination
+ 				bx_avg=0.0;
+ 				by_avg=0.0;
+ 				samples = 20; //Dr.C.  for the number of stobes cycles used during phase sensitive detection.
  				lwheel->Reset();
  				rwheel->Reset();
  				howdy->Enabled();
@@ -90,11 +100,20 @@
  		leftgo  = -(speed+(1.0-speed)*(double)(nitroL))*leftgo;   //DrC  ''
  		robotDrive->TankDrive(rightgo, leftgo);
 
- 		//Strobey bit
- 		if(button_led){
-
- 		led1->Pulse(1);
+ 		//Strobey bit section: Phase sensitive detection section. -Dr. C.
+ 		if(button_led){    // mapped by Christian
+ 		reflectedLight = 0.0;  //DrC, the phase sensitive detection signal goes in this variable
+ 		  for(i=1;i<samples;i++){   //DrC basic flash sequence
+ 			 led1 -> Set(1);
+ 			 sleep(1);     //DrC, delay meant to let LED output stabilize a bit.
+ 			 strobe_on = Photo -> GetVoltage(); //DrC
+ 			 led1 -> Set(0);
+ 			 sleep(1);
+ 			 strobe_off = Photo -> GetVoltage(); //DrC
+ 			 reflectedLight = reflectedLight+strobe_on-strobe_off; //DrC summative
+ 		  }
  		}
+ 		// end of Strobey bit
  		// Pickupwheel section
  		pickup_kickballout = gamePad -> GetRawAxis(2);//DrC
  		pickup_pickup = gamePad -> GetRawButton(5);//rC
@@ -109,7 +128,6 @@
  		else{
  			pickupWheel=0.0;
  		}
-
  		// right bumper speed up the wheel, right trigger  to shoot.
  		piston_buttonu   = gamePad-> GetRawButton(3);
  		piston_buttond   = gamePad-> GetRawButton(4);
@@ -140,16 +158,18 @@
  		pd = Photo -> GetVoltage(); //DrC
  			// here flatten response and assume that robot is level.
  		bx = (bx-boffsetx)*bscalex; //DrC
+ 		bx_avg = bx_avg*(1.0-baveraging)+bx*baveraging; //Dr. C
  		by = (by-boffsety)*bscaley; //DrC
- 		heading = 180*atan(by/bx)/pi; //DrC
+ 		by_avg = by_avg*(1.0-baveraging)+by*baveraging; // Dr. C.
+ 		heading = 180*atan(by_avg/bx_avg)/pi; //DrC
 
  		SmartDashboard::PutNumber("ax",ax); //DrC
  	    SmartDashboard::PutNumber("ay",ay); //DrC
  		SmartDashboard::PutNumber("az",az); //DrC
  		SmartDashboard::PutNumber("heading", heading); //DrC
- 		SmartDashboard::PutNumber("pd", pd);
- 		SmartDashboard::PutNumber("bx", bx);
- 		SmartDashboard::PutNumber("by", by);
+ 		SmartDashboard::PutNumber("pd", reflectedLight);
+ 		SmartDashboard::PutNumber("bx", bx_avg);
+ 		SmartDashboard::PutNumber("by", by_avg);
  		SmartDashboard::PutData("rwheel", rwheel);
  	 	SmartDashboard::PutData("lwheel", lwheel);
  		//SmartDashboard::PutNumber("rightgo",rightgo); //DrC
@@ -164,3 +184,7 @@
  	}
   };
  START_ROBOT_CLASS(Robot)
+  // Robot button-software-electrical map
+
+  //
+
