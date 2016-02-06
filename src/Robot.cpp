@@ -13,12 +13,12 @@
  	LiveWindow *lw = LiveWindow::GetInstance();
   	SendableChooser *chooser;
   	bool nitroL, nitroR;  //DrC, for speed boost in tank drive
-  	bool pickup_pickup,shooter_spinup, piston_buttonu,piston_buttond,button_led; //DrC
+  	bool pickup_pickup,shooter_spinup, piston_buttonu,piston_buttond,button_led, speedgood; //DrC
   	int i, samples;
   	const std::string autoNameDefault = "Default";
   	const std::string autoNameCustom = "My Auto";
  	double leftgo,rightgo,speed;  //DrC speed scales joysticks output to drive number
- 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, pickupWheel, shooter_shoot; //FIX
+ 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
   	std::string autoSelected;
 
   	DoubleSolenoid *piston = new DoubleSolenoid(0,1);
@@ -40,16 +40,16 @@
 	AnalogInput *By = new AnalogInput(1); //DrC  magnetic y component
 	AnalogInput *Photo = new AnalogInput(2); //DrC  photodiode response
 	BuiltInAccelerometer *accel = new BuiltInAccelerometer(); //DrC what it is...what it is...
-	DigitalOutput *led1 = new DigitalOutput(1); //DrC triggerline for the structured lightfield
+	DigitalOutput *led1 = new DigitalOutput(4); //DrC triggerline for the structured lightfield
 
-	Encoder *lwheel =new Encoder(0,1);
+	Encoder *shooterwheel =new Encoder(0,1);
 	Encoder *rwheel = new Encoder(2,3);
 
   	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
   	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter); //***
  void AutonomousInit() {
 	    howdy->Enabled();
-		lwheel->Reset();
+		shooterwheel->Reset();
 		rwheel->Reset();
 		piston1->Set(DoubleSolenoid::Value::kOff);
  		if(autoSelected == autoNameCustom){
@@ -80,7 +80,12 @@
  				bx_avg=0.0;
  				by_avg=0.0;
  				samples = 20; //Dr.C.  for the number of stobes cycles used during phase sensitive detection.
- 				lwheel->Reset();
+ 				savg = .1; //Dr.C. for averaging the noise out of the shot wheel speed encoder.
+ 				shotspeed = 0.0;
+ 				starget = .7; //DrC target speed for the shooterwheels encoder output
+ 				swindow = .1; // window (percent) of starget to be good to fire ball! here .1 = 10percent
+ 				speed  = .6; //driving speed for finer control
+ 				shooterwheel->Reset();
  				rwheel->Reset();
  				howdy->Enabled();
  				piston1->Set(DoubleSolenoid::Value::kOff);
@@ -94,12 +99,9 @@
  		nitroR   = rightDrive-> GetRawButton(3);
  		nitroL   = leftDrive-> GetRawButton(3);
  		button_led = gamePad->GetRawButton(1);
-
- 		speed  = .6;
 		rightgo = -(speed+(1.0-speed)*(double)(nitroR))*rightgo;  //DrC for nitro drive
  		leftgo  = -(speed+(1.0-speed)*(double)(nitroL))*leftgo;   //DrC  ''
  		robotDrive->TankDrive(rightgo, leftgo);
-
  		//Strobey bit section: Phase sensitive detection section. -Dr. C.
  		if(button_led){    // mapped by Christian
  		reflectedLight = 0.0;  //DrC, the phase sensitive detection signal goes in this variable
@@ -117,7 +119,14 @@
  		// Pickupwheel section
  		pickup_kickballout = gamePad -> GetRawAxis(2);//DrC
  		pickup_pickup = gamePad -> GetRawButton(5);//rC
- 		lwheel->GetRaw();
+ 		swheelspeed = shooterwheel->GetRaw();
+ 		shotspeed = shotspeed*(1.0-savg)+savg*swheelspeed;
+ 		if (abs(shotspeed-starget)/starget<swindow){
+ 			speedgood=TRUE;
+ 		}
+ 		else{
+ 			speedgood=FALSE;
+ 		}
  		rwheel->GetRaw();
  		if(abs(pickup_kickballout)>.1){ //DrC
  			pickupWheel = 0.7;
@@ -133,8 +142,8 @@
  		piston_buttond   = gamePad-> GetRawButton(4);
  		shooter_shoot = gamePad -> GetRawAxis(3);//DrC
  		shooter_spinup = gamePad -> GetRawButton(6);
- 		if(abs(shooter_shoot)>.1){ //DrC
- 			shooterWheel = 1.0;
+ 		if((abs(shooter_shoot)>.1)&&(speedgood)){ //DrC, (bool)speedgood indicates at within window around target speed.
+ 			shooterWheel = -1.0;
  		 }
  		 else {//DrC reset it so can have three modes, forward, backwards and nothing!
  			shooterWheel = 0.0;
@@ -170,8 +179,8 @@
  		SmartDashboard::PutNumber("pd", reflectedLight);
  		SmartDashboard::PutNumber("bx", bx_avg);
  		SmartDashboard::PutNumber("by", by_avg);
- 		SmartDashboard::PutData("rwheel", rwheel);
- 	 	SmartDashboard::PutData("lwheel", lwheel);
+ 		SmartDashboard::PutData("rwheel", rwheel);  //DrC this example gets data from pointer to method
+ 	 	SmartDashboard::PutNumber("shooterwheel", shotspeed); //DrC, just pukes out a number
  		//SmartDashboard::PutNumber("rightgo",rightgo); //DrC
  		//SmartDashboard::PutNumber("leftgo",leftgo); //DrC
  		//SmartDashboard::PutNumber("kickballout",pickup_kickballout); //DrC
