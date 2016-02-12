@@ -8,8 +8,6 @@
  *
  *
  */
-
-
   class Robot: public IterativeRobot
   {
 
@@ -198,7 +196,7 @@ void Robotint(){
  		heading = 180*atan(by_avg/bx_avg)/pi; //DrC
 
  		SmartDashboard::PutNumber("ax",ax); //DrC
- 	    SmartDashboard::PutNumber("ay",ay); //DrC
+ 	        SmartDashboard::PutNumber("ay",ay); //DrC
  		SmartDashboard::PutNumber("az",az); //DrC
  		SmartDashboard::PutNumber("heading", heading); //DrC
  		SmartDashboard::PutNumber("pd", reflectedLight);
