@@ -1,6 +1,6 @@
 #include "WPILib.h"
 //#include "Gamepad.h"  //DrC appears that you may not need this include as well...automatic?
-#include "DoubleSolenoid.h"
+#include "Cameraserver.h"
 //#include <stdio.h>   //DrC may not need this one. We may want to use it if we attemp fileI/O with the code.
 #include <unistd.h>  //DrC , needed just for the sleep() function...warning sleep() may not be threadsafe!
 /*      CB4 Robot Code, team 4601 (Canfield Ohio,the Circuit Birds)
@@ -17,20 +17,22 @@
   	int i, samples;
   	const std::string autoNameDefault = "Default";
   	const std::string autoNameCustom = "My Auto";
- 	double leftgo,rightgo,speed;  //DrC speed scales joysticks output to drive number
+ 	double leftgo,rightgo,speed,quality;  //DrC speed scales joysticks output to drive number
  	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
   	std::string autoSelected;
 
   	DoubleSolenoid *piston = new DoubleSolenoid(0,1);
   	DoubleSolenoid *piston1 = new DoubleSolenoid(2,3);
-  	
+
   	Compressor *howdy= new Compressor(0);//comnpressor does not like the term compress or compressor
-  	USBCamera *cam3 =new USBCamera("cam3",1);
+
+  	USBCamera *elmo =new USBCamera("cam3",1);
   	//USBCamera *cam2 =new USBCamera("cam2",1);
-  	
+
   	Joystick *rightDrive = new Joystick(0,2,9);//DrC
   	Joystick *leftDrive  = new Joystick(1,2,9);//DrC
 	Joystick *gamePad = new Joystick(2,6,9);//DrC
+
   	Talon *fRight = new Talon(1); // remaped all talons E and DrC
   	Talon *fLeft = new Talon(0);
   	Talon *bRight = new Talon(2);
@@ -75,13 +77,20 @@
 
  	void TeleopInit()
  	{
+ 		elmo->OpenCamera();
+ 		elmo->SetFPS(30);
+ 		elmo-> SetExposureAuto();
+ 		elmo->SetBrightness(100);
+ 		elmo->SetWhiteBalanceManual(5);
+
  		CameraServer::GetInstance()->SetQuality(50);
- 		//cam3->SetBrightness(50);
- 		cam3-> SetExposureAuto();
+
+ 		//elmo->SetBrightness(50);
  		//cam2-> SetExposureAuto();
+		CameraServer::GetInstance()->StartAutomaticCapture("elmo");
  				//the camera name (ex "cam0") can be found through the roborio web interface
- 		CameraServer::GetInstance()->StartAutomaticCapture("cam3");
  		//CameraServer::GetInstance()->StartAutomaticCapture("cam2");
+
  		// calibration data  -from DrC
  			    boffsetx = 1.4;
  				boffsety = 1.2;
@@ -104,7 +113,7 @@
 
   	void TeleopPeriodic()
   	{
-
+quality=CameraServer::GetInstance()->GetQuality();
   		rightgo = rightDrive-> GetRawAxis(1);
  		leftgo  = leftDrive-> GetRawAxis(1);
  		nitroR   = rightDrive-> GetRawButton(3);
@@ -203,12 +212,13 @@
  		SmartDashboard::PutNumber("bx", bx_avg);
  		SmartDashboard::PutNumber("by", by_avg);
  		SmartDashboard::PutData("rwheel", rwheel);  //DrC this example gets data from pointer to method
- 	 	SmartDashboard::PutNumber("shooterwheel", shotspeed); //DrC, just pukes out a number
+ 	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
+ 	 	SmartDashboard::PutNumber("quality", quality);//tells the camEra qyuality
  		//SmartDashboard::PutNumber("rightgo",rightgo); //DrC
  		//SmartDashboard::PutNumber("leftgo",leftgo); //DrC
  		//SmartDashboard::PutNumber("kickballout",pickup_kickballout); //DrC
  		//SmartDashboard::PutNumber("Shooterwheelaxis", shooter_shoot);
-
+//
   	}
   	void TestPeriodic()
  	{
