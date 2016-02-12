@@ -2,7 +2,6 @@
 //#include "Gamepad.h"  //DrC appears that you may not need this include as well...automatic?
 #include "DoubleSolenoid.h"
 //#include <stdio.h>   //DrC may not need this one. We may want to use it if we attemp fileI/O with the code.
-#include "image.h"
 #include <unistd.h>  //DrC , needed just for the sleep() function...warning sleep() may not be threadsafe!
 /*      CB4 Robot Code, team 4601 (Canfield Ohio,the Circuit Birds)
  *
@@ -10,7 +9,6 @@
  */
   class Robot: public IterativeRobot
   {
-
  private:
  	LiveWindow *lw = LiveWindow::GetInstance();
   	SendableChooser *chooser;
@@ -22,13 +20,14 @@
  	double leftgo,rightgo,speed;  //DrC speed scales joysticks output to drive number
  	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
   	std::string autoSelected;
-  USBCamera *elmo = new  USBCamera("cam3",3);
 
   	DoubleSolenoid *piston = new DoubleSolenoid(0,1);
   	DoubleSolenoid *piston1 = new DoubleSolenoid(2,3);
-
+  	
   	Compressor *howdy= new Compressor(0);//comnpressor does not like the term compress or compressor
-
+  	USBCamera *cam3 =new USBCamera("cam3",1);
+  	//USBCamera *cam2 =new USBCamera("cam2",1);
+  	
   	Joystick *rightDrive = new Joystick(0,2,9);//DrC
   	Joystick *leftDrive  = new Joystick(1,2,9);//DrC
 	Joystick *gamePad = new Joystick(2,6,9);//DrC
@@ -38,7 +37,7 @@
   	Talon *bLeft = new Talon(3);
   	Talon *pickup = new Talon(4);// pickup
   	Talon *shooter = new Talon(5);// main shooterwheel
-//
+
 	AnalogInput *Bx = new AnalogInput(0); //DrC  magnetic x component
 	AnalogInput *By = new AnalogInput(1); //DrC  magnetic y component
 	AnalogInput *Photo = new AnalogInput(2); //DrC  photodiode response
@@ -50,14 +49,9 @@
 	Encoder *shooterwheel =new Encoder(0,1);
 	Encoder *rwheel = new Encoder(2,3);
 
-
   	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
   	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter); //***
-void Robotint(){
-	elmo->StartCapture();
-	elmo->SetFPS(30);
-}
-  	void AutonomousInit() {
+ void AutonomousInit() {
 	    howdy->Enabled();
 		shooterwheel->Reset();
 		rwheel->Reset();
@@ -69,7 +63,7 @@ void Robotint(){
  			//Default Auto goes here
  		}
  	}
-//
+
  	void AutonomousPeriodic()
  	{
  		if(autoSelected == autoNameCustom){
@@ -81,6 +75,13 @@ void Robotint(){
 
  	void TeleopInit()
  	{
+ 		CameraServer::GetInstance()->SetQuality(50);
+ 		//cam3->SetBrightness(50);
+ 		cam3-> SetExposureAuto();
+ 		//cam2-> SetExposureAuto();
+ 				//the camera name (ex "cam0") can be found through the roborio web interface
+ 		CameraServer::GetInstance()->StartAutomaticCapture("cam3");
+ 		//CameraServer::GetInstance()->StartAutomaticCapture("cam2");
  		// calibration data  -from DrC
  			    boffsetx = 1.4;
  				boffsety = 1.2;
@@ -113,18 +114,17 @@ void Robotint(){
  		leftgo  = -(speed+(1.0-speed)*(double)(nitroL))*leftgo;   //DrC  ''
  		robotDrive->TankDrive(rightgo, leftgo);
  		if(nitroR){
- 			leds1->Set(1);//red
- 		}
- 		else{
- 			leds1->Set(0);
- 		}
- 		if(nitroL){
- 			leds2->Set(1);//blue
- 		}
- 		else{
- 			leds2->Set(0);
- 		}
-
+ 		 			leds1->Set(1);//red
+ 		 		}
+ 		 		else{
+ 		 			leds1->Set(0);
+ 		 		}
+ 		 		if(nitroL){
+ 		 			leds2->Set(1);//blue
+ 		 		}
+ 		 		else{
+ 		 			leds2->Set(0);
+ 		 		}
  		//Strobey bit section: Phase sensitive detection section. -Dr. C.
  		if(button_led){    // mapped by Christian
  		reflectedLight = 0.0;  //DrC, the phase sensitive detection signal goes in this variable
@@ -179,7 +179,7 @@ void Robotint(){
  		{
  		 			piston->Set(DoubleSolenoid::Value::kForward);
  		}
-//
+
  		pickupShooter->TankDrive(pickupWheel,shooterWheel); //DrC here run the wheels!
  		//Sensor section Dr C
  		ax = accel-> GetX();//DrC   Sensor Section : get orientation of the robot WRT field co-ordinates.
@@ -208,6 +208,7 @@ void Robotint(){
  		//SmartDashboard::PutNumber("leftgo",leftgo); //DrC
  		//SmartDashboard::PutNumber("kickballout",pickup_kickballout); //DrC
  		//SmartDashboard::PutNumber("Shooterwheelaxis", shooter_shoot);
+
   	}
   	void TestPeriodic()
  	{
