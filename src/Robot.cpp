@@ -11,6 +11,7 @@
   {
 
  private:
+
  	LiveWindow *lw = LiveWindow::GetInstance();
   	SendableChooser *chooser;
   	bool nitroL, nitroR;  //DrC, for speed boost in tank drive
@@ -20,7 +21,6 @@
   	const std::string autoNameCustom = "My Auto";
  	double leftgo,rightgo,speed,quality;  //DrC speed scales joysticks output to drive number
  	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
-
  	double Auto1_F;//E Auto code variables
  	int auto_server,r_enc,l_enc;
  	std::string autoSelected;
@@ -58,11 +58,27 @@
 
 	SmartDashboard *auto_selector =new SmartDashboard();// E Simplicity for me to easy call functions
 
+	DriverStation::Alliance Team;// I have no Idea why but I seem only able to get the variable to work this way
+
   	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
   	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter); //***
-  	void RobotInt(){
+
+  	void RobotInt(){//E I think were going to need this for when were just an idling robot for some first run code.
 		auto_selector->PutNumber("How Shall I Drive Myself Sire?",0); // Adds a Auto code selector on boot up 1-2 no change defaults to 0
 		//AFTER AUTO HAS STARTED DO NOT CHANGE THE VALUE
+Team = DriverStation::GetInstance().GetAlliance();//This is if we need to switch the magnatometer around and stuff
+if(Team==(DriverStation::Alliance::kBlue))//E
+{
+	SmartDashboard::PutString("Team","Blue!");
+	//mag=normal
+}
+else if(Team==(DriverStation::Alliance::kRed)){
+	SmartDashboard::PutString("Team","Red!");
+//switch the magnatometer value
+}
+else{
+	SmartDashboard::PutString("Team","NONE?");
+}
   	}
  void AutonomousInit() {
 
@@ -87,20 +103,21 @@
 
  	void AutonomousPeriodic() //Welcome to the Realm of Hearsay. OH! and Elijah.
  	{
+
  		r_enc = abs(rwheel->GetRaw()); //E have to convert regular encoders into ints for auto
  		l_enc = abs(lwheel->GetRaw());//E the abs is absolute value so i don't have to make anything negative
 
  		if(auto_server==0){// E I wrote my own Auto Selectors this in theory should let us change auto.
  		auto_server = auto_selector->GetNumber("How Shall I Drive Sire?",1);//If no auto code is specified defaults to auto 1
  		}
-
  		else if(auto_server==1)//Auto code 1 For straight in front of low bar
- 		{
- 		if((r_enc/360<=Auto1_F) & (l_enc/360<=Auto1_F)){//so if rwheel encoder is <= rotations and wheel endoder is <= rotations DRIVE MAN DRIVE
+ 		{//E Hey Doc C can we get the magtometer in this as well I was thinking about doing a launch as well I don't know how to use it.
+ 		if((r_enc/360<=Auto1_F) & (l_enc/360<=Auto1_F)/*Maghere straight*/ ){//so if rwheel encoder is <= rotations and wheel endoder is <= rotations DRIVE MAN DRIVE
  			rightgo=.7;
  			leftgo=.7;
  			robotDrive->TankDrive(rightgo, leftgo);
  		}
+
  		else{// STOP MAN!!! STOP DRIVING
  			rightgo=0;
  		 	leftgo=0;
@@ -113,6 +130,7 @@
  		{
  			rightgo=0;
  			leftgo=0;
+
  			SmartDashboard::PutString("What's new?","MOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO and stuffffffffff!");
  			SmartDashboard::PutString("AKA","Auto 2 AINT DONE YET");
 
@@ -120,7 +138,10 @@
  		}//END AUTO 2
 
  		else{ //Auto 3 Do we really need that many codes? I think by this part if we need this we probably in the land of Hearsay
+
  			SmartDashboard::PutString("HEY!!!","You know it is only 1-2 right?");
+ 			rightgo=0;
+ 			leftgo=0;
  			leds1->Set(1);
 
 
@@ -262,12 +283,13 @@ quality=CameraServer::GetInstance()->GetQuality();
  		heading = 180*atan(by_avg/bx_avg)/pi; //DrC
 
  		SmartDashboard::PutNumber("ax",ax); //DrC
- 	        SmartDashboard::PutNumber("ay",ay); //DrC
+ 	    SmartDashboard::PutNumber("ay",ay); //DrC
  		SmartDashboard::PutNumber("az",az); //DrC
  		SmartDashboard::PutNumber("heading", heading); //DrC
  		SmartDashboard::PutNumber("pd", reflectedLight);
  		SmartDashboard::PutNumber("bx", bx_avg);
  		SmartDashboard::PutNumber("by", by_avg);
+
  		SmartDashboard::PutData("rwheel", rwheel);  //DrC this example gets data from pointer to method
  	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
  	 	SmartDashboard::PutNumber("quality", quality);//tells the camEra qyuality
