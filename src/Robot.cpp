@@ -1,6 +1,7 @@
 #include "WPILib.h"
 //#include "Gamepad.h"  //DrC appears that you may not need this include as well...automatic?
-#include "Cameraserver.h"
+#include "CameraServer.h"
+#include "LHSVision.h"
 //#include <stdio.h>   //DrC may not need this one. We may want to use it if we attemp fileI/O with the code.
 #include <unistd.h>  //DrC , needed just for the sleep() function...warning sleep() may not be threadsafe!
 /*      CB4 Robot Code, team 4601 (Canfield Ohio,the Circuit Birds)
@@ -29,8 +30,10 @@
   	DoubleSolenoid *piston1 = new DoubleSolenoid(2,3);
   	Compressor *howdy= new Compressor(0);//comnpressor does not like the term compress or compressor
 
-  	USBCamera *elmo =new USBCamera("cam3",1);
   	//USBCamera *cam2 =new USBCamera("cam2",1);
+  	IMAQdxSession session;
+  	Image *frame;
+  	IMAQdxError imaqError;
 
   	Joystick *rightDrive = new Joystick(0,2,9);//DrC
   	Joystick *leftDrive  = new Joystick(1,2,9);//DrC
@@ -62,10 +65,16 @@
 
   	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
   	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter); //***
-
-  	void RobotInt(){//E I think were going to need this for when were just an idling robot for some first run code.
-		auto_selector->PutNumber("How Shall I Drive Myself Sire?",0); // Adds a Auto code selector on boot up 1-2 no change defaults to 0
+ void AutonomousInit() {
+		auto_selector->PutNumber("How Shall I Drive Myself Sire?",0);// Adds a Auto code selector on boot up 1-2 no change defaults to 0
+		SmartDashboard::PutNumber("Drive",0);
 		//AFTER AUTO HAS STARTED DO NOT CHANGE THE VALUE
+
+
+
+
+
+
 Team = DriverStation::GetInstance().GetAlliance();//This is if we need to switch the magnatometer around and stuff
 if(Team==(DriverStation::Alliance::kBlue))//E
 {
@@ -79,9 +88,6 @@ else if(Team==(DriverStation::Alliance::kRed)){
 else{
 	SmartDashboard::PutString("Team","NONE?");
 }
-  	}
- void AutonomousInit() {
-
 		shooterwheel->Reset();
 		rwheel->Reset();
 		lwheel->Reset();
@@ -100,7 +106,7 @@ else{
  			//Default Auto goes here
  		}
  	}
-
+//
  	void AutonomousPeriodic() //Welcome to the Realm of Hearsay. OH! and Elijah.
  	{
 
@@ -138,29 +144,46 @@ else{
  		}//END AUTO 2
 
  		else{ //Auto 3 Do we really need that many codes? I think by this part if we need this we probably in the land of Hearsay
-
  			SmartDashboard::PutString("HEY!!!","You know it is only 1-2 right?");
  			rightgo=0;
  			leftgo=0;
  			leds1->Set(1);
-
-
  		}//END AUTO 3
+
  	}//END AUTO
 
  	void TeleopInit()
  	{
- 		CameraServer::GetInstance()->SetQuality(50);
+ 	//	CameraServer::GetInstance()->SetQuality(50);
  		//cam2-> SetExposureAuto();
-		CameraServer::GetInstance()->StartAutomaticCapture("elmo");
- 				//the camera name (ex "cam0") can be found through the roborio web interface
+	//	CameraServer::GetInstance()->StartAutomaticCapture("cam3");
+ 				//the camera name (ex "cam3") can be found through the roborio web interface
  		//CameraServer::GetInstance()->StartAutomaticCapture("cam2");
+ 	    // create an image
+ 		  // create an image
+ 		frame = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
+ 			//the camera name (ex "cam0") can be found through the roborio web interface
+ 			imaqError = IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session);
+ 			if(imaqError != IMAQdxErrorSuccess) {
+ 				DriverStation::ReportError("IMAQdxOpenCamera error: " + std::to_string((long)imaqError) + "\n");
+ 			}
+ 			imaqError = IMAQdxConfigureGrab(session);
 
-		elmo->OpenCamera();
- 		elmo->SetFPS(30);
- 		elmo-> SetExposureAuto();
- 		elmo->SetBrightness(40);
- 		elmo->SetWhiteBalanceAuto();
+
+
+		/* cam3->OpenCamera();
+ 		cam3->SetFPS(27);
+ 		cam3->SetWhiteBalanceHoldCurrent();
+ 		cam3-> SetExposureHoldCurrent();
+ 		cam3->SetBrightness(1);
+ 		cam3->UpdateSettings();
+ 		cam3->StartCapture();
+ 		SmartDashboard::PutNumber("cam brightness",cam3->GetBrightness());
+*/
+
+
+
+ 		//cam3->SetWhiteBalanceAuto();
 
  		// calibration data  -from DrC
  			    boffsetx = 1.4;
@@ -182,11 +205,12 @@ else{
  				piston1->Set(DoubleSolenoid::Value::kOff);
  				piston->Set(DoubleSolenoid::Value::kOff);
  				ramp_act=0;
+
+
  	}
 
   	void TeleopPeriodic()
   	{
-quality=CameraServer::GetInstance()->GetQuality();
   		rightgo = rightDrive-> GetRawAxis(1);
  		leftgo  = leftDrive-> GetRawAxis(1);
  		nitroR   = rightDrive-> GetRawButton(3);
@@ -282,6 +306,20 @@ quality=CameraServer::GetInstance()->GetQuality();
  		by_avg = by_avg*(1.0-baveraging)+by*baveraging; // Dr. C.
  		heading = 180*atan(by_avg/bx_avg)/pi; //DrC
 
+	        // grab an image, draw the circle, and provide it for the camera server which will
+	        // in turn send it to the dashboard.
+
+	        // grab an image, draw the circle, and provide it for the camera server which will
+	        // in turn send it to the dashboard.
+ 		CameraServer::GetInstance()->SetImage(frame);
+
+ 		IMAQdxStartAcquisition(session);
+ 		IMAQdxGrab(session, frame, true, NULL);
+
+ 						imaqDrawShapeOnImage(frame, frame, { 10, 10, 100, 100 }, DrawMode::IMAQ_DRAW_VALUE, ShapeMode::IMAQ_SHAPE_OVAL, 0.0f);
+ 						CameraServer::GetInstance()->SetImage(frame);
+//
+//
  		SmartDashboard::PutNumber("ax",ax); //DrC
  	    SmartDashboard::PutNumber("ay",ay); //DrC
  		SmartDashboard::PutNumber("az",az); //DrC
@@ -297,7 +335,7 @@ quality=CameraServer::GetInstance()->GetQuality();
  		//SmartDashboard::PutNumber("leftgo",leftgo); //DrC
  		//SmartDashboard::PutNumber("kickballout",pickup_kickballout); //DrC
  		//SmartDashboard::PutNumber("Shooterwheelaxis", shooter_shoot);
-//
+
   	}
   	void TestPeriodic()
  	{
