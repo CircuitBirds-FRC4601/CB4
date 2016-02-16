@@ -1,7 +1,4 @@
 #include "WPILib.h"
-//#include "Gamepad.h"  //DrC appears that you may not need this include as well...automatic?
-#include "CameraServer.h"
-#include "LHSVision.h"
 //#include <stdio.h>   //DrC may not need this one. We may want to use it if we attemp fileI/O with the code.
 #include <unistd.h>  //DrC , needed just for the sleep() function...warning sleep() may not be threadsafe!
 /*      CB4 Robot Code, team 4601 (Canfield Ohio,the Circuit Birds)
@@ -10,71 +7,68 @@
  */
   class Robot: public IterativeRobot
   {
-
  private:
+	  	bool nitroL, nitroR,cam_button;  //DrC, for speed boost in tank drive
+	  	bool pickup_pickup,shooter_spinup, piston_button,frame_act,button_led, speedgood; //DrC
+	  	int i, samples;
+	  	const std::string autoNameDefault = "Default";
+	  	const std::string autoNameCustom = "My Auto";
+	 	double leftgo,rightgo,speed,quality;  //DrC speed scales joysticks output to drive number
+	 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
+	 	double Auto1_F;//E Auto code variables
+	 	int auto_server,r_enc,l_enc;
+	 	std::string autoSelected;
+
+	  	DoubleSolenoid *piston = new DoubleSolenoid(0,1);
+	  	DoubleSolenoid *piston1 = new DoubleSolenoid(2,3);
+	  	Compressor *howdy= new Compressor(0);//comnpressor does not like the term compress or compressor
+
+	  	IMAQdxSession session1;
+	  	Image *frame1;
+	  	IMAQdxError imaqError1;
+	/*	IMAQdxSession session2;
+	  	Image *frame2;
+	  	IMAQdxError imaqError2;*/
+
+	  	Joystick *rightDrive = new Joystick(0,2,9);//DrC
+	  	Joystick *leftDrive  = new Joystick(1,2,9);//DrC
+		Joystick *gamePad = new Joystick(2,6,9);//DrC
+
+	  	Talon *fRight = new Talon(1); // remaped all talons E and DrC
+	  	Talon *fLeft = new Talon(0);
+	  	Talon *bRight = new Talon(2);
+	  	Talon *bLeft = new Talon(3);
+	  	Talon *pickup = new Talon(4);// pickup
+	  	Talon *shooter = new Talon(5);// main shooterwheel
+
+		AnalogInput *Bx = new AnalogInput(0); //DrC  magnetic x component
+		AnalogInput *By = new AnalogInput(1); //DrC  magnetic y component
+		AnalogInput *Photo = new AnalogInput(2); //DrC  photodiode response
+		BuiltInAccelerometer *accel = new BuiltInAccelerometer(); //DrC what it is...what it is...
+
+		DigitalOutput *led1 = new DigitalOutput(4); //DrC triggerline for the structured lightfield
+		DigitalOutput *leds1 = new DigitalOutput(9);//status 1
+		DigitalOutput *leds2 = new DigitalOutput(8);//status 2
+
+		Encoder *shooterwheel =new Encoder(0,1);
+		Encoder *rwheel = new Encoder(2,3);
+		Encoder *lwheel = new Encoder(4,5);
+
+
+		DriverStation::Alliance Team;// I have no Idea why but I seem only able to get the variable to work this way
+
+	  	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
+	  	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter); //**
 
  	LiveWindow *lw = LiveWindow::GetInstance();
-  	SendableChooser *chooser;
-  	bool nitroL, nitroR;  //DrC, for speed boost in tank drive
-  	bool pickup_pickup,shooter_spinup, piston_button,ramp_act,button_led, speedgood; //DrC
-  	int i, samples;
-  	const std::string autoNameDefault = "Default";
-  	const std::string autoNameCustom = "My Auto";
- 	double leftgo,rightgo,speed,quality;  //DrC speed scales joysticks output to drive number
- 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
- 	double Auto1_F;//E Auto code variables
- 	int auto_server,r_enc,l_enc;
- 	std::string autoSelected;
+ 	Command *auto_selector;
+ 	SendableChooser *auto_chooser;
 
-  	DoubleSolenoid *piston = new DoubleSolenoid(0,1);
-  	DoubleSolenoid *piston1 = new DoubleSolenoid(2,3);
-  	Compressor *howdy= new Compressor(0);//comnpressor does not like the term compress or compressor
-
-  	//USBCamera *cam2 =new USBCamera("cam2",1);
-  	IMAQdxSession session;
-  	Image *frame;
-  	IMAQdxError imaqError;
-
-  	Joystick *rightDrive = new Joystick(0,2,9);//DrC
-  	Joystick *leftDrive  = new Joystick(1,2,9);//DrC
-	Joystick *gamePad = new Joystick(2,6,9);//DrC
-
-  	Talon *fRight = new Talon(1); // remaped all talons E and DrC
-  	Talon *fLeft = new Talon(0);
-  	Talon *bRight = new Talon(2);
-  	Talon *bLeft = new Talon(3);
-  	Talon *pickup = new Talon(4);// pickup
-  	Talon *shooter = new Talon(5);// main shooterwheel
-
-	AnalogInput *Bx = new AnalogInput(0); //DrC  magnetic x component
-	AnalogInput *By = new AnalogInput(1); //DrC  magnetic y component
-	AnalogInput *Photo = new AnalogInput(2); //DrC  photodiode response
-	BuiltInAccelerometer *accel = new BuiltInAccelerometer(); //DrC what it is...what it is...
-
-	DigitalOutput *led1 = new DigitalOutput(4); //DrC triggerline for the structured lightfield
-	DigitalOutput *leds1 = new DigitalOutput(9);//status 1
-	DigitalOutput *leds2 = new DigitalOutput(8);//status 2
-
-	Encoder *shooterwheel =new Encoder(0,1);
-	Encoder *rwheel = new Encoder(2,3);
-	Encoder *lwheel = new Encoder(4,5);
-
-	SmartDashboard *auto_selector =new SmartDashboard();// E Simplicity for me to easy call functions
-
-	DriverStation::Alliance Team;// I have no Idea why but I seem only able to get the variable to work this way
-
-  	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
-  	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter); //***
- void AutonomousInit() {
-		auto_selector->PutNumber("How Shall I Drive Myself Sire?",0);// Adds a Auto code selector on boot up 1-2 no change defaults to 0
-		SmartDashboard::PutNumber("Drive",0);
-		//AFTER AUTO HAS STARTED DO NOT CHANGE THE VALUE
-
-
-
-
-
-
+ void RobotInit(){
+	auto_chooser=new SendableChooser();
+	 auto_chooser->AddDefault("Low Bar", auto_chooser);
+ }
+	void AutonomousInit() {
 Team = DriverStation::GetInstance().GetAlliance();//This is if we need to switch the magnatometer around and stuff
 if(Team==(DriverStation::Alliance::kBlue))//E
 {
@@ -91,100 +85,38 @@ else{
 		shooterwheel->Reset();
 		rwheel->Reset();
 		lwheel->Reset();
-
 	    howdy->Enabled();
 		piston1->Set(DoubleSolenoid::Value::kOff);
 		piston->Set(DoubleSolenoid::Value::kOff);
-
 		Auto1_F=50;//50 rotations
-
-		auto_server = auto_selector->GetNumber("How Shall I Drive Sire?",0);
-		if(autoSelected == autoNameCustom){ //E im not sure how these work any ideas any one? Should I just delete?
- 			//Custom Auto goes here
- 		}
- 		 else {
- 			//Default Auto goes here
- 		}
- 	}
-//
- 	void AutonomousPeriodic() //Welcome to the Realm of Hearsay. OH! and Elijah.
- 	{
-
- 		r_enc = abs(rwheel->GetRaw()); //E have to convert regular encoders into ints for auto
- 		l_enc = abs(lwheel->GetRaw());//E the abs is absolute value so i don't have to make anything negative
-
- 		if(auto_server==0){// E I wrote my own Auto Selectors this in theory should let us change auto.
- 		auto_server = auto_selector->GetNumber("How Shall I Drive Sire?",1);//If no auto code is specified defaults to auto 1
- 		}
- 		else if(auto_server==1)//Auto code 1 For straight in front of low bar
- 		{//E Hey Doc C can we get the magtometer in this as well I was thinking about doing a launch as well I don't know how to use it.
- 		if((r_enc/360<=Auto1_F) & (l_enc/360<=Auto1_F)/*Maghere straight*/ ){//so if rwheel encoder is <= rotations and wheel endoder is <= rotations DRIVE MAN DRIVE
- 			rightgo=.7;
- 			leftgo=.7;
- 			robotDrive->TankDrive(rightgo, leftgo);
- 		}
-
- 		else{// STOP MAN!!! STOP DRIVING
- 			rightgo=0;
- 		 	leftgo=0;
- 		 	robotDrive->TankDrive(rightgo, leftgo);
- 		}
-
- 			}//END AUTOCODE 1
-
- 		else if(auto_server==2) //Auto code 2
- 		{
- 			rightgo=0;
- 			leftgo=0;
-
- 			SmartDashboard::PutString("What's new?","MOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO and stuffffffffff!");
- 			SmartDashboard::PutString("AKA","Auto 2 AINT DONE YET");
-
-
- 		}//END AUTO 2
-
- 		else{ //Auto 3 Do we really need that many codes? I think by this part if we need this we probably in the land of Hearsay
- 			SmartDashboard::PutString("HEY!!!","You know it is only 1-2 right?");
- 			rightgo=0;
- 			leftgo=0;
- 			leds1->Set(1);
- 		}//END AUTO 3
-
- 	}//END AUTO
+}
+	void AutonomousPeriodic() //Welcome to the Realm of Hearsay. OH! and Elijah.
+	{
+		r_enc = abs(rwheel->GetRaw()); //E have to convert regular encoders into ints for auto
+		l_enc = abs(lwheel->GetRaw());//E the abs is absolute value so i don't have to make anything negative
+		if(r_enc){
+		}
+	}
 
  	void TeleopInit()
  	{
- 	//	CameraServer::GetInstance()->SetQuality(50);
- 		//cam2-> SetExposureAuto();
-	//	CameraServer::GetInstance()->StartAutomaticCapture("cam3");
- 				//the camera name (ex "cam3") can be found through the roborio web interface
- 		//CameraServer::GetInstance()->StartAutomaticCapture("cam2");
- 	    // create an image
- 		  // create an image
- 		frame = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
+ 		//Camfront
+ 		frame1 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
  			//the camera name (ex "cam0") can be found through the roborio web interface
- 			imaqError = IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session);
- 			if(imaqError != IMAQdxErrorSuccess) {
- 				DriverStation::ReportError("IMAQdxOpenCamera error: " + std::to_string((long)imaqError) + "\n");
+ 			imaqError1 = IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session1);
+ 			if(imaqError1 != IMAQdxErrorSuccess) {
+ 				DriverStation::ReportError("IMAQdxOpenCamera error: " + std::to_string((long)imaqError1) + "\n");
  			}
- 			imaqError = IMAQdxConfigureGrab(session);
-
-
-
-		/* cam3->OpenCamera();
- 		cam3->SetFPS(27);
- 		cam3->SetWhiteBalanceHoldCurrent();
- 		cam3-> SetExposureHoldCurrent();
- 		cam3->SetBrightness(1);
- 		cam3->UpdateSettings();
- 		cam3->StartCapture();
- 		SmartDashboard::PutNumber("cam brightness",cam3->GetBrightness());
-*/
-
-
-
- 		//cam3->SetWhiteBalanceAuto();
-
+ 			imaqError1 = IMAQdxConfigureGrab(session1);
+ 			//Camback
+ 		/*	frame2 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
+ 	 			//the camera name (ex "cam0") can be found through the roborio web interface
+ 	 			imaqError2 = IMAQdxOpenCamera("cam2", IMAQdxCameraControlModeController, &session2);
+ 	 			if(imaqError2 != IMAQdxErrorSuccess) {
+ 	 				DriverStation::ReportError("IMAQdxOpenCamera error: " + std::to_string((long)imaqError2) + "\n");
+ 	 			}
+ 	 			imaqError2 = IMAQdxConfigureGrab(session2);
+ 	 			*/
  		// calibration data  -from DrC
  			    boffsetx = 1.4;
  				boffsety = 1.2;
@@ -199,14 +131,13 @@ else{
  				starget = .7; //DrC target speed for the shooterwheels encoder output
  				swindow = .1; // window (percent) of starget to be good to fire ball! here .1 = 10percent
  				speed  = .6; //driving speed for finer control
+
  				shooterwheel->Reset();
  				rwheel->Reset();
  				howdy->Enabled();
  				piston1->Set(DoubleSolenoid::Value::kOff);
  				piston->Set(DoubleSolenoid::Value::kOff);
- 				ramp_act=0;
-
-
+ 				frame_act=0;
  	}
 
   	void TeleopPeriodic()
@@ -215,11 +146,10 @@ else{
  		leftgo  = leftDrive-> GetRawAxis(1);
  		nitroR   = rightDrive-> GetRawButton(3);
  		nitroL   = leftDrive-> GetRawButton(3);
- 		button_led = gamePad->GetRawButton(1);
-
  		rightgo = -(speed+(1.0-speed)*(double)(nitroR))*rightgo;  //DrC for nitro drive
  		leftgo  = -(speed+(1.0-speed)*(double)(nitroL))*leftgo;   //DrC  ''
  		robotDrive->TankDrive(rightgo, leftgo);
+ 		button_led = gamePad->GetRawButton(1);
  				if(nitroR&&nitroL){
  		 			leds1->Set(.5);//red overpowers
  		 			leds2->Set(1);//blue
@@ -259,7 +189,7 @@ else{
  		else{
  			speedgood=FALSE;
  		}
- 		rwheel->GetRaw();
+
  		if(abs(pickup_kickballout)>.1){ //DrC
  			pickupWheel = 0.7;
  		}
@@ -281,16 +211,28 @@ else{
  		 }
  		if(piston_button)
  		{
- 			ramp_act= not ramp_act;
+ 			frame_act= not frame_act;
  		}
- 		if(ramp_act)
+ 		if(frame_act)
  		{
  		 			piston->Set(DoubleSolenoid::Value::kForward);
+ 		 			Wait(5);
  		}
  		else{
  			piston->Set(DoubleSolenoid::Value::kReverse);
+ 			Wait(5);
  		}
-
+ 		cam_button=leftDrive->GetRawButton(1);
+ 	/*	if(cam_button){
+ 			IMAQdxStopAcquisition(session1);
+ 	 	 	 		CameraServer::GetInstance()->SetImage(frame2);
+ 	 	 	 		IMAQdxStartAcquisition(session2);
+ 	 	 	 		IMAQdxGrab(session2, frame2, true, NULL);
+ 	 		}
+ 	 			IMAQdxStopAcquisition(session2);*/
+ 	 	 		CameraServer::GetInstance()->SetImage(frame1);
+ 	 	 		IMAQdxStartAcquisition(session1);
+ 	 	 		IMAQdxGrab(session1, frame1, true, NULL);
  		pickupShooter->TankDrive(pickupWheel,shooterWheel); //DrC here run the wheels!
  		//Sensor section Dr C
  		ax = accel-> GetX();//DrC   Sensor Section : get orientation of the robot WRT field co-ordinates.
@@ -298,7 +240,7 @@ else{
  		az = accel-> GetZ();//DrC  ax ay az used to define down
  		bx = Bx -> GetVoltage();//DrC   Raw Readings
  		by = By -> GetVoltage(); //DrC
- 		pd = Photo -> GetVoltage(); //DrC
+ 		pd = Photo -> GetVoltage(); //DrC.
  			// here flatten response and assume that robot is level.
  		bx = (bx-boffsetx)*bscalex; //DrC
  		bx_avg = bx_avg*(1.0-baveraging)+bx*baveraging; //Dr. C
@@ -311,15 +253,7 @@ else{
 
 	        // grab an image, draw the circle, and provide it for the camera server which will
 	        // in turn send it to the dashboard.
- 		CameraServer::GetInstance()->SetImage(frame);
-
- 		IMAQdxStartAcquisition(session);
- 		IMAQdxGrab(session, frame, true, NULL);
-
- 						imaqDrawShapeOnImage(frame, frame, { 10, 10, 100, 100 }, DrawMode::IMAQ_DRAW_VALUE, ShapeMode::IMAQ_SHAPE_OVAL, 0.0f);
- 						CameraServer::GetInstance()->SetImage(frame);
-//
-//
+ //imaqDrawShapeOnImage(frame1, frame1, { 10, 10, 100, 100 }, DrawMode::IMAQ_DRAW_VALUE, ShapeMode::IMAQ_SHAPE_RECT, 0.0f);
  		SmartDashboard::PutNumber("ax",ax); //DrC
  	    SmartDashboard::PutNumber("ay",ay); //DrC
  		SmartDashboard::PutNumber("az",az); //DrC
@@ -327,7 +261,6 @@ else{
  		SmartDashboard::PutNumber("pd", reflectedLight);
  		SmartDashboard::PutNumber("bx", bx_avg);
  		SmartDashboard::PutNumber("by", by_avg);
-
  		SmartDashboard::PutData("rwheel", rwheel);  //DrC this example gets data from pointer to method
  	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
  	 	SmartDashboard::PutNumber("quality", quality);//tells the camEra qyuality
@@ -335,7 +268,6 @@ else{
  		//SmartDashboard::PutNumber("leftgo",leftgo); //DrC
  		//SmartDashboard::PutNumber("kickballout",pickup_kickballout); //DrC
  		//SmartDashboard::PutNumber("Shooterwheelaxis", shooter_shoot);
-
   	}
   	void TestPeriodic()
  	{
@@ -344,5 +276,4 @@ else{
   };
  START_ROBOT_CLASS(Robot)
   // Robot button-software-electrical map
-
   //
