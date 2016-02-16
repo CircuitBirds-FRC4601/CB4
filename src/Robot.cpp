@@ -1,11 +1,11 @@
 #include "WPILib.h"
 //#include <stdio.h>   //DrC may not need this one. We may want to use it if we attemp fileI/O with the code.
-#include <unistd.h>  //DrC , needed just for the sleep() function...warning sleep() may not be threadsafe!
+#include <unistd.h>  //DrC , needed just for the usleep() function...warning sleep() may not be threadsafe!
 /*      CB4 Robot Code, team 4601 (Canfield Ohio,the Circuit Birds)
  *
  *
  */
-  class Robot: public IterativeRobot
+class Robot: public IterativeRobot
   {
  private:
 	  	bool nitroL, nitroR,cam_button;  //DrC, for speed boost in tank drive
@@ -131,7 +131,6 @@ else{
  				starget = .7; //DrC target speed for the shooterwheels encoder output
  				swindow = .1; // window (percent) of starget to be good to fire ball! here .1 = 10percent
  				speed  = .6; //driving speed for finer control
-
  				shooterwheel->Reset();
  				rwheel->Reset();
  				howdy->Enabled();
@@ -167,12 +166,12 @@ else{
  		//Strobey bit section: Phase sensitive detection section. -Dr. C.
  		if(button_led){    // mapped by Christian
  		reflectedLight = 0.0;  //DrC, the phase sensitive detection signal goes in this variable
- 		  for(i=1;i<samples;i++){   //DrC basic flash sequence
+ 		  for(i=1;i<samples;i++){ //DrC basic flash sequence
  			 led1 -> Set(1);
- 			 sleep(1);   //DrC, delay meant to let LED output stabilize a bit.
+ 			 usleep(100);   //DrC, delay meant to let LED output stabilize a bit.
  			 strobe_on = Photo -> GetVoltage(); //DrC
  			 led1 -> Set(0);
- 			 sleep(1);
+ 			 usleep(100);
  			 strobe_off = Photo -> GetVoltage(); //DrC
  			 reflectedLight = reflectedLight+strobe_on-strobe_off; //DrC summative
  		  }
@@ -223,7 +222,7 @@ else{
  			Wait(5);
  		}
  		cam_button=leftDrive->GetRawButton(1);
- 	/*	if(cam_button){
+    	/*	if(cam_button){
  			IMAQdxStopAcquisition(session1);
  	 	 	 		CameraServer::GetInstance()->SetImage(frame2);
  	 	 	 		IMAQdxStartAcquisition(session2);
@@ -255,7 +254,7 @@ else{
 	        // in turn send it to the dashboard.
  //imaqDrawShapeOnImage(frame1, frame1, { 10, 10, 100, 100 }, DrawMode::IMAQ_DRAW_VALUE, ShapeMode::IMAQ_SHAPE_RECT, 0.0f);
  		SmartDashboard::PutNumber("ax",ax); //DrC
- 	    SmartDashboard::PutNumber("ay",ay); //DrC
+ 	        SmartDashboard::PutNumber("ay",ay); //DrC
  		SmartDashboard::PutNumber("az",az); //DrC
  		SmartDashboard::PutNumber("heading", heading); //DrC
  		SmartDashboard::PutNumber("pd", reflectedLight);
