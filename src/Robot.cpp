@@ -8,7 +8,7 @@
   class Robot: public IterativeRobot
   {
  private:
-	  	bool nitroL, nitroR,cam_button,ramp_in,ramp_out;  //DrC, for speed boost in tank drive
+	  	bool nitroL, nitroR,cam_button,cam_button1,ramp_in,ramp_out,cam;  //DrC, for speed boost in tank drive
 	  	bool pickup_pickup,shooter_spinup, piston_button,frame_act,button_led, speedgood,piston_button_prev; //DrC
 	  	int i, samples;
 	  	const std::string autoNameDefault = "Default";
@@ -47,9 +47,9 @@
 		DigitalOutput *leds1 = new DigitalOutput(9);//status 1
 		DigitalOutput *leds2 = new DigitalOutput(8);//status 2
 
-		Encoder *shooterwheel =new Encoder(0,1);
-		Encoder *rwheel = new Encoder(2,3);
-		Encoder *lwheel = new Encoder(4,5);
+		Encoder *shooterwheel =new Encoder(4,5);
+		Encoder *lwheel = new Encoder(0,3);
+		Encoder *rwheel = new Encoder(1,2);
 
 
 		DriverStation::Alliance Team;// I have no Idea why but I seem only able to get the variable to work this way
@@ -86,26 +86,25 @@ else{
 		piston_ramp->Set(DoubleSolenoid::Value::kOff);
 		piston->Set(DoubleSolenoid::Value::kOff);
 
-		Auto1_F=50;//50 rotations
+		Auto1_F=137.5;//50 rotations is about 25 in // 137.5 should get us past the outer works mabey so about 68.75 in so about half a foot past start of outer works
 }
-	void AutonomousPeriodic() //Welcome to the Realm of Hearsay. OH! and Elijah.
-	{
-		r_enc = abs(rwheel->GetRaw()); //E have to convert regular encoders into ints for auto
-		l_enc = abs(lwheel->GetRaw());//E the abs is absolute value so i don't have to make anything negative
-		if(r_enc){
+	void AutonomousPeriodic(){
+		r_enc = abs(rwheel->GetRaw())/360; //E have to convert regular encoders into ints for auto returns as degrees
+		l_enc = abs(lwheel->GetRaw())/360;//E the abs is absolute value so i don't have to make anything negative
+		if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)){
+			rightgo=.7;
+	 		leftgo=.7;
+
 		}
+		else{
+			rightgo=.7;
+			 		leftgo=.7;
+		}
+		robotDrive->TankDrive(rightgo, leftgo);
 	}
  	void TeleopInit()
  	{
- 		//Camfront
- 		frame1 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
- 			//the camera name (ex "cam0") can be found through the roborio web interface
- 			imaqError1 = IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session1);
- 			if(imaqError1 != IMAQdxErrorSuccess) {
- 				DriverStation::ReportError("IMAQdxOpenCamera error: " + std::to_string((long)imaqError1) + "\n");
- 			}
- 			imaqError1 = IMAQdxConfigureGrab(session1);
- 	 		IMAQdxStartAcquisition(session1);
+
  			//Camback
  		/*	frame2 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
  	 			//the camera name (ex "cam0") can be found through the roborio web interface
@@ -131,6 +130,7 @@ else{
  				swindow = .1; // window (percent) of starget to be good to fire ball! here .1 = 10percent
  				speed  = .7; //driving speed for finer control
 
+
  				shooterwheel->Reset();
  				rwheel->Reset();
  				howdy->Enabled();
@@ -138,6 +138,7 @@ else{
  				piston->Set(DoubleSolenoid::Value::kOff);
  				frame_act=0;
  				piston_button_prev=0;
+ 				cam=0;
  	}
   	void TeleopPeriodic()
   	{
@@ -238,10 +239,33 @@ else{
  		}
  		//END OF PISTON CONTROL AREA
  		cam_button=leftDrive->GetRawButton(2);
+ 		cam_button1=rightDrive->GetRawButton(2);
+ 		if(cam_button&&not cam){
+ 			frame1 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
+
+ 			//the camera name (ex "cam0") can be found through the roborio web interface
+ 			imaqError1 = IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session1);
+ 			if(imaqError1 != IMAQdxErrorSuccess) {
+ 				DriverStation::ReportError("IMAQdxOpenCamera error: " + std::to_string((long)imaqError1) + "\n");
+ 			}
+ 			imaqError1 = IMAQdxConfigureGrab(session1);
+ 	 		IMAQdxStartAcquisition(session1);
+
 	        CameraServer::GetInstance()->SetImage(frame1);
 	 			IMAQdxStartAcquisition(session1);
 	 			 	 	 		IMAQdxGrab(session1, frame1, true, NULL);
- 		//Sensor section Dr C
+	 			 	 	 		cam=1;
+ 		}
+ 		if(cam_button1){
+ 			cam=1;
+ 		}
+ 		if(cam){
+ 			  CameraServer::GetInstance()->SetImage(frame1);
+ 				 			IMAQdxStartAcquisition(session1);
+ 				 			 	 	 		IMAQdxGrab(session1, frame1, true, NULL);
+ 		}
+
+	 //Sensor section Dr C
  		ax = accel-> GetX();//DrC   Sensor Section : get orientation of the robot WRT field co-ordinates.
  		ay = accel-> GetY();//DrC
  		az = accel-> GetZ();//DrC  ax ay az used to define down
