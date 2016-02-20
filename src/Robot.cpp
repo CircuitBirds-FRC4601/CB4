@@ -15,7 +15,7 @@
 	  	const std::string autoNameCustom = "My Auto";
 	 	double leftgo,rightgo,speed,quality,Arm_in,Arm_out;  //DrC speed scales joysticks output to drive number
 	 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
-	 	double Auto1_F;//E Auto code variables
+	 	double Auto1_F,auto_server;//E Auto code variables
 	 	int r_enc,l_enc;
 		bool forward1;//things for auto
 		bool Arm_buttonin,Arm_buttonout;
@@ -44,16 +44,17 @@
 
 		AnalogInput *Bx = new AnalogInput(0); //DrC  magnetic x component
 		AnalogInput *By = new AnalogInput(1); //DrC  magnetic y component
-		AnalogInput *Photo = new AnalogInput(2); //DrC  photodiode response
+		AnalogInput *Auto_sel = new AnalogInput(3);
+		//AnalogInput *Photo = new AnalogInput(2); //DrC  photodiode response
 		BuiltInAccelerometer *accel = new BuiltInAccelerometer(); //DrC what it is...what it is...
 
 
-		//DigitalOutput *leds1 = new DigitalOutput(7);//status 1
-		DigitalOutput *leds2 = new DigitalOutput(6);//status 2
+		DigitalOutput *leds1 = new DigitalOutput(7);//status 1
 
-		DigitalInput *Auto_sel = new DigitalInput(9);//auto selector
+		DigitalInput *frame_bumber = new DigitalInput(6);//status 2
+
+		//DigitalInput *Auto_sel = new DigitalInput(9);//auto selector
 		DigitalInput *lswitch_armin = new DigitalInput(8);//reads the arm limit switch
-		DigitalInput *lswitch_armout = new DigitalInput(7);//reads the arm limit switch
 
 		Encoder *shooterwheel =new Encoder(4,5);
 		Encoder *lwheel = new Encoder(0,1);
@@ -98,14 +99,15 @@
 
 		Auto1_F=137.5;//50 rotations is about 25 in // 137.5 should get us past the outer works mabey so about 68.75 in so about half a foot past start of outer works
 		forward1=0;
-	Auto_sel->Get();
+
 //AUTO
 
 }
 
  void AutonomousPeriodic()
 	{
-if(Auto_sel)//LOW BAR Plugged in
+	 auto_server=Auto_sel->GetValue();
+if(auto_server>1000000)//LOW BAR
 	 {
 
 		r_enc = abs(rwheel->GetRaw())/360;
@@ -146,7 +148,7 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
 	robotDrive->TankDrive(rightgo, leftgo);
 	 }
 
-
+		SmartDashboard::PutNumber("auto_server", auto_server);
 		SmartDashboard::PutNumber("r_enc", r_enc);
 		SmartDashboard::PutNumber("l_enc", l_enc);
 
@@ -201,26 +203,6 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
 //DRIVE CONTROL
 
 
-//DR C'S BORDAM ZONE
- 		/*
- 				if(nitroR&&nitroL){       // this section for testing digital devices
- 		 			leds1->Set(.5);//red overpowers
- 		 			leds2->Set(1);//blue
- 		 		}
- 		 		else if(nitroR){
- 		 			leds1->Set(1);
- 		 		}
- 		 		else if(nitroL){
- 		 			leds2->Set(1);//blue
- 		 		}
- 		 		else{
- 		 			leds2->Set(0);
- 		 			leds1->Set(0);
- 		 		}
- 		 */
-//DR C'S BORDAM ZONE
-
-
 /*//STROBEY BIT SECTION
  		button_led = gamePad->GetRawButton(1);
  		if(button_led){
@@ -266,13 +248,13 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
 
  		shooter_shoot = gamePad -> GetRawButton(6);
  		if((abs(shooter_shoot)>.1)&&(speedgood)){ //DrC, (bool)speedgood indicates at within window around target speed.
- 			shooterWheel = -1;
+ 			shooterWheel = -.75;
  		 }
  	else {
  			shooterWheel = 0.0;
  		 }
  		pickupShooter->TankDrive(pickupWheel,shooterWheel);
- 		//SHOOTER WHEEL
+//SHOOTER WHEEL
 
 
  //PISTON CONTROL AREA
@@ -308,13 +290,13 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
 //ARM CONTROLL
  	Arm_buttonin=gamePad->GetRawButton(1);
  	Arm_buttonout=gamePad->GetRawButton(3);
- 	if(lswitch_armin||lswitch_armout){
+ 	if(lswitch_armin){
  		Arm->Set(0);
  	}
- 	else if(Arm_buttonin&&not Arm_buttonout&&not lswitch_armin&&not lswitch_armout){
+ 	else if(Arm_buttonin&&not Arm_buttonout&&not lswitch_armin){
  		Arm->Set(.5);
  	}
- 	else if(not Arm_buttonin&& Arm_buttonout&&not lswitch_armin&&not lswitch_armout){
+ 	else if(not Arm_buttonin&& Arm_buttonout&&not lswitch_armin){
  		Arm->Set(-.5);
  	 	}
  	else{
@@ -358,7 +340,7 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
  		az = accel-> GetZ();//DrC  ax ay az used to define down
  		bx = Bx -> GetVoltage();
  		by = By -> GetVoltage();
- 		pd = Photo -> GetVoltage();
+ 	//	pd = Photo -> GetVoltage();
  			// here flatten response and assume that robot is level.
  		bx = (bx-boffsetx)*bscalex;
  		bx_avg = bx_avg*(1.0-baveraging)+bx*baveraging;
