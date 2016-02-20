@@ -9,15 +9,17 @@
   {
  private:
 	  	bool nitroL, nitroR,cam_button,cam_button1,ramp_in,ramp_out,cam;  //DrC, for speed boost in tank drive
-	  	bool pickup_pickup,shooter_spinup, piston_button,frame_act,button_led, speedgood,piston_button_prev; //DrC
+	  	bool pickup_pickup, piston_button,frame_act,button_led, speedgood,piston_button_prev; //DrC
 	  	int i, samples;
 	  	const std::string autoNameDefault = "Default";
 	  	const std::string autoNameCustom = "My Auto";
-	 	double leftgo,rightgo,speed,quality;  //DrC speed scales joysticks output to drive number
+	 	double leftgo,rightgo,speed,quality,Arm_in,Arm_out;  //DrC speed scales joysticks output to drive number
 	 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
 	 	double Auto1_F;//E Auto code variables
 	 	int r_enc,l_enc;
 		bool forward1;//things for auto
+		bool Arm_buttonin,Arm_buttonout;
+
 	 	std::string autoSelected;
 
 	  	DoubleSolenoid *piston = new DoubleSolenoid(0,1);
@@ -38,25 +40,30 @@
 	  	Talon *bLeft = new Talon(3);
 	  	Talon *pickup = new Talon(4);// pickup
 	  	Talon *shooter = new Talon(5);// main shooterwheel
+		Talon *Arm = new Talon(6);
 
 		AnalogInput *Bx = new AnalogInput(0); //DrC  magnetic x component
 		AnalogInput *By = new AnalogInput(1); //DrC  magnetic y component
 		AnalogInput *Photo = new AnalogInput(2); //DrC  photodiode response
 		BuiltInAccelerometer *accel = new BuiltInAccelerometer(); //DrC what it is...what it is...
 
-		DigitalOutput *led1 = new DigitalOutput(4); //DrC triggerline for the structured lightfield
-		DigitalOutput *leds1 = new DigitalOutput(9);//status 1
-		DigitalOutput *leds2 = new DigitalOutput(8);//status 2
+
+		//DigitalOutput *leds1 = new DigitalOutput(7);//status 1
+		DigitalOutput *leds2 = new DigitalOutput(6);//status 2
+
+		DigitalInput *Auto_sel = new DigitalInput(9);//auto selector
+		DigitalInput *lswitch_armin = new DigitalInput(8);//reads the arm limit switch
+		DigitalInput *lswitch_armout = new DigitalInput(7);//reads the arm limit switch
 
 		Encoder *shooterwheel =new Encoder(4,5);
-		Encoder *lwheel = new Encoder(0,3);
-		Encoder *rwheel = new Encoder(1,2);
+		Encoder *lwheel = new Encoder(0,1);
+		Encoder *rwheel = new Encoder(2,3);
 
 		DriverStation::Alliance Team;// I have no Idea why but I seem only able to get the variable to work this way
 
 	  	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
-	  	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter); //**
-
+	  	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter); //**Arm_in,Arm_out
+	  	RobotDrive *ArmDrive = new RobotDrive(Arm_in,Arm_in,Arm_out,Arm_out);
 
  	LiveWindow *lw = LiveWindow::GetInstance();
 
@@ -80,6 +87,7 @@
 		}
 //TEAM DISPLAY
 
+
 //AUTO
 		shooterwheel->Reset();
 		rwheel->Reset();
@@ -89,29 +97,54 @@
 		piston->Set(DoubleSolenoid::Value::kOff);
 
 		Auto1_F=137.5;//50 rotations is about 25 in // 137.5 should get us past the outer works mabey so about 68.75 in so about half a foot past start of outer works
-	forward1=0;
-
+		forward1=0;
+	Auto_sel->Get();
+//AUTO
 
 }
 
  void AutonomousPeriodic()
 	{
+if(Auto_sel)//LOW BAR Plugged in
+	 {
+
 		r_enc = abs(rwheel->GetRaw())/360;
 			l_enc = abs(lwheel->GetRaw())/360;
+
 	if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
 			rightgo=.7;
 	 			leftgo=.7;
 		}
+
 		else{
-			rightgo=.0;
-				leftgo=.0;
-			r_enc = abs(rwheel->GetRaw())/360;
-				l_enc = abs(lwheel->GetRaw())/360;
+		rightgo=.0;
+		leftgo=.0;
+			rwheel->Reset();
+			lwheel->Reset();
+		forward1=TRUE;
 		}
+
 		if(forward1&&(r_enc<=Auto1_F)&&(l_enc<=Auto1_F)){
 
 		}
 		robotDrive->TankDrive(rightgo, leftgo);
+	 }
+
+
+else //Secondary Auto DRIVE FORWARD
+	 {
+		 r_enc = abs(rwheel->GetRaw())/360;
+		l_enc = abs(lwheel->GetRaw())/360;
+if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
+		rightgo=.7;
+			leftgo=.7;
+	}
+	else{
+	rightgo=.0;
+		leftgo=.0;
+	}
+	robotDrive->TankDrive(rightgo, leftgo);
+	 }
 
 
 		SmartDashboard::PutNumber("r_enc", r_enc);
@@ -123,7 +156,7 @@
  	{
 
 // CALIBRATION
- 				boffsetx = 1.4;
+ 			        boffsetx = 1.4;
  				boffsety = 1.2;
  				bscalex = 1.0;
  				bscaley = 1.0;
@@ -148,6 +181,7 @@
  				frame_act=0;
  				piston_button_prev=0;
  				cam=0;
+
 //TELOP DECLERATIONS
 
  	}
@@ -156,7 +190,7 @@
   	{
 
 
-//DRIVE CONTROL
+ //DRIVE CONTROL
   		rightgo = rightDrive-> GetRawAxis(1);
  		leftgo  = leftDrive-> GetRawAxis(1);
  		nitroR   = rightDrive-> GetRawButton(3);
@@ -187,33 +221,33 @@
 //DR C'S BORDAM ZONE
 
 
-//STROBEY BIT SECTION
+/*//STROBEY BIT SECTION
  		button_led = gamePad->GetRawButton(1);
  		if(button_led){
  		reflectedLight = 0.0;  //DrC, the phase sensitive detection signal goes in this variable
  		  for(i=1;i<samples;i++){   //DrC basic flash sequence
- 			 led1 -> Set(1);
+ 			// led1 -> Set(1);
  			 usleep(100);  //DrC, delay meant to let LED output stabilize a bit.
  			 strobe_on = Photo -> GetVoltage();
- 			 led1 -> Set(0);
+ 			// led1 -> Set(0);
  			 usleep(100);
  			 strobe_off = Photo -> GetVoltage();
  			 reflectedLight = reflectedLight+strobe_on-strobe_off; //DrC summative
  		  }
  		}
-//STROBEY BIT SECTION
+//STROBEY BIT SECTION*/
 
 
 // PICKUPWHEEL
  		pickup_kickballout = gamePad -> GetRawAxis(2);
- 		pickup_pickup = gamePad -> GetRawButton(5);
- 		if(abs(pickup_kickballout)>.1){
+ 		pickup_pickup = gamePad -> GetRawAxis(3);
+ 	if(abs(pickup_kickballout)>.1){
  			pickupWheel = 0.7;
  		}
- 		else if(pickup_pickup){
+ 	else if(pickup_pickup){
  			pickupWheel = -0.7;
  		}
- 		else{
+ 	else{
  			pickupWheel=0.0;
  		}
 // PICKUP WHEEL
@@ -223,52 +257,69 @@
  		swheelspeed = shooterwheel->GetRate();
  	 		shotspeed = shotspeed*(1.0-savg)+savg*swheelspeed;
 
- 	 		if (abs(shotspeed-starget)/starget<swindow){
+ 	 if (abs(shotspeed-starget)/starget<swindow){
  	 			speedgood=TRUE;
  	 		}
- 	 		else{
+ 	 else{
  	 			speedgood=FALSE;
  	 		}
 
- 		shooter_shoot = gamePad -> GetRawAxis(3);
- 		shooter_spinup = gamePad -> GetRawButton(6);
+ 		shooter_shoot = gamePad -> GetRawButton(6);
  		if((abs(shooter_shoot)>.1)&&(speedgood)){ //DrC, (bool)speedgood indicates at within window around target speed.
- 			shooterWheel = -1.0;
+ 			shooterWheel = -1;
  		 }
- 		 else {
+ 	else {
  			shooterWheel = 0.0;
  		 }
  		pickupShooter->TankDrive(pickupWheel,shooterWheel);
- //SHOOTER WHEEL
+ 		//SHOOTER WHEEL
 
 
  //PISTON CONTROL AREA
  		piston_button  = leftDrive-> GetRawButton(1);
  		ramp_in=gamePad->GetRawButton(4);
  	 	ramp_out=gamePad->GetRawButton(2);
- 		if((piston_button)&&(not piston_button_prev)&&(not frame_act))
+ 	if((piston_button)&&(not piston_button_prev)&&(not frame_act))
  		{
  			frame_act= TRUE;
  		}
- 		if((piston_button)&&(not piston_button_prev)&&(frame_act))
+ 	if((piston_button)&&(not piston_button_prev)&&(frame_act))
  		{
  			frame_act=FALSE;
  		}
- 		if(frame_act){
+ 	if(frame_act){
  		piston->Set(DoubleSolenoid::Value::kForward);
  		}
- 		else{
+ 	else{
  			piston->Set(DoubleSolenoid::Value::kReverse);
  		}
- 		piston_button_prev = piston_button;
 
- 		if((ramp_in)&&(not ramp_out)){
+ piston_button_prev = piston_button;
+
+ 	if((ramp_in)&&(not ramp_out)){
  			piston_ramp->Set(DoubleSolenoid::Value::kForward);
  		}
- 		if((ramp_out)&&(not ramp_in)){
+ 	if((ramp_out)&&(not ramp_in)){
  			piston_ramp->Set(DoubleSolenoid::Value::kReverse);
  		}
 //END OF PISTON CONTROL AREA
+
+
+//ARM CONTROLL
+ 	Arm_buttonin=gamePad->GetRawButton(1);
+ 	Arm_buttonout=gamePad->GetRawButton(3);
+ 	if(lswitch_armin||lswitch_armout){
+ 		Arm->Set(0);
+ 	}
+ 	else if(Arm_buttonin&&not Arm_buttonout&&not lswitch_armin&&not lswitch_armout){
+ 		Arm->Set(.5);
+ 	}
+ 	else if(not Arm_buttonin&& Arm_buttonout&&not lswitch_armin&&not lswitch_armout){
+ 		Arm->Set(-.5);
+ 	 	}
+ 	else{
+		Arm->Set(0);
+ 	}
 
 
 //CAMERA CONTROL
@@ -295,38 +346,42 @@
  		if(cam){
  			  CameraServer::GetInstance()->SetImage(frame1);
  				IMAQdxStartAcquisition(session1);
- 				 			 	 	 		IMAQdxGrab(session1, frame1, true, NULL);
+ 				 			IMAQdxGrab(session1, frame1, true, NULL);
  		}
+
 //CAM CONTROL
 
 
 //SENSORS
  		ax = accel-> GetX();//DrC   Sensor Section : get orientation of the robot WRT field co-ordinates.
- 		ay = accel-> GetY();//DrC
+ 		ay = accel-> GetY();
  		az = accel-> GetZ();//DrC  ax ay az used to define down
- 		bx = Bx -> GetVoltage();//DrC   Raw Readings
- 		by = By -> GetVoltage(); //DrC
- 		pd = Photo -> GetVoltage(); //DrC.
+ 		bx = Bx -> GetVoltage();
+ 		by = By -> GetVoltage();
+ 		pd = Photo -> GetVoltage();
  			// here flatten response and assume that robot is level.
- 		bx = (bx-boffsetx)*bscalex; //DrC
- 		bx_avg = bx_avg*(1.0-baveraging)+bx*baveraging; //Dr. C
- 		by = (by-boffsety)*bscaley; //DrC
- 		by_avg = by_avg*(1.0-baveraging)+by*baveraging; // Dr. C.
- 		heading = 180*atan(by_avg/bx_avg)/pi; //DrC
+ 		bx = (bx-boffsetx)*bscalex;
+ 		bx_avg = bx_avg*(1.0-baveraging)+bx*baveraging;
+ 		by = (by-boffsety)*bscaley;
+ 		by_avg = by_avg*(1.0-baveraging)+by*baveraging;
+ 		heading = 180*atan(by_avg/bx_avg)/pi;
 //SENSORS
 
 
 //SMASH DASHPORD
- 		SmartDashboard::PutNumber("ax",ax); //DrC
- 		SmartDashboard::PutNumber("ay",ay); //DrC
- 		SmartDashboard::PutNumber("az",az); //DrC
- 		SmartDashboard::PutNumber("heading", heading); //DrC
+ 		SmartDashboard::PutNumber("ax",ax);
+ 	    SmartDashboard::PutNumber("ay",ay);
+ 		SmartDashboard::PutNumber("az",az);
+ 		SmartDashboard::PutNumber("heading", heading);
  		SmartDashboard::PutNumber("pd", reflectedLight);
  		SmartDashboard::PutNumber("bx", bx_avg);
  		SmartDashboard::PutNumber("by", by_avg);
- 		SmartDashboard::PutData("rwheel", rwheel);  //DrC this example gets data from pointer to method
+
+ 		SmartDashboard::PutData("rwheel", rwheel);
  	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
 //SMASH DASHPORD
+
+
   	}
   	void TestPeriodic()
  	{
