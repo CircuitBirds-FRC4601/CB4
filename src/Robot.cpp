@@ -8,7 +8,7 @@
   class Robot: public IterativeRobot
   {
  private:
-	  	bool nitroL, nitroR,cam_button,cam_button1,ramp_in,ramp_out,cam;  //DrC, for speed boost in tank drive
+	  	bool nitroL, nitroR,cam_button,cam_button1,ramp_in,ramp_out,cam,cam_switcher;  //DrC, for speed boost in tank drive
 	  	bool pickup_pickup, piston_button,frame_act,button_led, speedgood,piston_button_prev; //DrC
 	  	int i, samples;
 	  	const std::string autoNameDefault = "Default";
@@ -16,9 +16,10 @@
 	 	double leftgo,rightgo,speed,quality,Arm_in,Arm_out;  //DrC speed scales joysticks output to drive number
 	 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
 	 	double Auto1_F,auto_server;//E Auto code variables
-	 	int r_enc,l_enc;
+	 	int r_enc,l_enc,shot_enc,auto_serversub;
 		bool forward1;//things for auto
 		bool Arm_buttonin,Arm_buttonout;
+		bool underglow_button,underglow_prev,underglow_sel;
 
 	 	std::string autoSelected;
 
@@ -29,6 +30,9 @@
 	  	IMAQdxSession session1;
 	  	Image *frame1;
 	  	IMAQdxError imaqError1;
+	  	IMAQdxSession session2;
+	  	Image *frame2;
+	 	IMAQdxError imaqError2;
 
 	  	Joystick *rightDrive = new Joystick(0,2,9);//DrC
 	  	Joystick *leftDrive  = new Joystick(1,2,9);//DrC
@@ -48,13 +52,11 @@
 		//AnalogInput *Photo = new AnalogInput(2); //DrC  photodiode response
 		BuiltInAccelerometer *accel = new BuiltInAccelerometer(); //DrC what it is...what it is...
 
+		Relay *underglow =new Relay(0);
 
 		DigitalOutput *leds1 = new DigitalOutput(7);//status 1
 
-		DigitalInput *frame_bumber = new DigitalInput(6);//status 2
-
-		//DigitalInput *Auto_sel = new DigitalInput(9);//auto selector
-		DigitalInput *lswitch_armin = new DigitalInput(8);//reads the arm limit switch
+		DigitalInput *lswitch_arm = new DigitalInput(8);//reads the arm limit switch
 
 		Encoder *shooterwheel =new Encoder(4,5);
 		Encoder *lwheel = new Encoder(0,1);
@@ -99,14 +101,12 @@
 
 		Auto1_F=137.5;//50 rotations is about 25 in // 137.5 should get us past the outer works mabey so about 68.75 in so about half a foot past start of outer works
 		forward1=0;
-
+		auto_server=Auto_sel->GetValue();
 //AUTO
-
 }
 
  void AutonomousPeriodic()
 	{
-	 auto_server=Auto_sel->GetValue();
 if(auto_server>1000000)//LOW BAR
 	 {
 
@@ -158,7 +158,7 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
  	{
 
 // CALIBRATION
- 			        boffsetx = 1.4;
+ 			    boffsetx = 1.4;
  				boffsety = 1.2;
  				bscalex = 1.0;
  				bscaley = 1.0;
@@ -172,17 +172,18 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
  				swindow = .1; // window (percent) of starget to be good to fire ball! here .1 = 10percent
 // CALIBRATION
 
-
 //TELOP DECLERATIONS
  				speed  = .7; //driving speed for finer control
  				shooterwheel->Reset();
  				rwheel->Reset();
+ 				lwheel->Reset();
  				howdy->Enabled();
  				piston_ramp->Set(DoubleSolenoid::Value::kOff);
  				piston->Set(DoubleSolenoid::Value::kOff);
- 				frame_act=0;
+ 				frame_act=FALSE;
  				piston_button_prev=0;
- 				cam=0;
+ 				cam=FALSE;
+ 				cam_switcher=FALSE;
 
 //TELOP DECLERATIONS
 
@@ -190,8 +191,19 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
 
   	void TeleopPeriodic()
   	{
-
-
+  		r_enc=lwheel->GetRaw();
+  		l_enc=rwheel->GetRaw();
+  		shot_enc=shooterwheel->GetRaw();
+   auto_server=Auto_sel->GetValue();  // for testing only
+   if(auto_server<=300){
+	   auto_serversub=1;
+   }
+   else if(auto_server<=800){
+	   auto_serversub=2;
+    }
+   else if(auto_server<=1800){
+	   auto_serversub=3;
+      }
  //DRIVE CONTROL
   		rightgo = rightDrive-> GetRawAxis(1);
  		leftgo  = leftDrive-> GetRawAxis(1);
@@ -247,7 +259,7 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
  	 		}
 
  		shooter_shoot = gamePad -> GetRawButton(6);
- 		if((abs(shooter_shoot)>.1)&&(speedgood)){ //DrC, (bool)speedgood indicates at within window around target speed.
+ 		if((abs(shooter_shoot)>.1)/*&&(speedgood)*/){ //DrC, (bool)speedgood indicates at within window around target speed.
  			shooterWheel = -.75;
  		 }
  	else {
@@ -258,25 +270,23 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
 
 
  //PISTON CONTROL AREA
+ 		piston_button_prev = piston_button;
  		piston_button  = leftDrive-> GetRawButton(1);
  		ramp_in=gamePad->GetRawButton(4);
  	 	ramp_out=gamePad->GetRawButton(2);
- 	if((piston_button)&&(not piston_button_prev)&&(not frame_act))
- 		{
- 			frame_act= TRUE;
- 		}
- 	if((piston_button)&&(not piston_button_prev)&&(frame_act))
- 		{
- 			frame_act=FALSE;
- 		}
+
+		if((piston_button!=piston_button_prev)&&piston_button)
+	 		{
+	 			frame_act= not frame_act;
+	 		}
  	if(frame_act){
  		piston->Set(DoubleSolenoid::Value::kForward);
  		}
  	else{
- 			piston->Set(DoubleSolenoid::Value::kReverse);
+ 		piston->Set(DoubleSolenoid::Value::kReverse);
  		}
 
- piston_button_prev = piston_button;
+
 
  	if((ramp_in)&&(not ramp_out)){
  			piston_ramp->Set(DoubleSolenoid::Value::kForward);
@@ -287,16 +297,16 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
 //END OF PISTON CONTROL AREA
 
 
-//ARM CONTROLL
+//ARM CONTROL
  	Arm_buttonin=gamePad->GetRawButton(1);
  	Arm_buttonout=gamePad->GetRawButton(3);
- 	if(lswitch_armin){
+ 	if(lswitch_arm){
  		Arm->Set(0);
  	}
- 	else if(Arm_buttonin&&not Arm_buttonout&&not lswitch_armin){
+ 	else if(Arm_buttonin&&not Arm_buttonout&&not lswitch_arm){
  		Arm->Set(.5);
  	}
- 	else if(not Arm_buttonin&& Arm_buttonout&&not lswitch_armin){
+ 	else if(not Arm_buttonin&& Arm_buttonout&&not lswitch_arm){
  		Arm->Set(-.5);
  	 	}
  	else{
@@ -306,32 +316,58 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
 
 //CAMERA CONTROL
  		cam_button=leftDrive->GetRawButton(2);
- 		cam_button1=rightDrive->GetRawButton(2);
+ 	//	cam_button1=rightDrive->GetRawButton(2);
+ 		cam_switcher=rightDrive->GetRawButton(1);
 
- 		if(cam_button&&not cam){
- 			frame1 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
- 			imaqError1 = IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session1);
- 			if(imaqError1 != IMAQdxErrorSuccess) {
- 				DriverStation::ReportError("IMAQdxOpenCamera error: " + std::to_string((long)imaqError1) + "\n");
+ 		if(not cam_switcher){
+ 			if(not cam){
+ 				IMAQdxStopAcquisition(session2);
+ 			 			IMAQdxCloseCamera(session2);
+
+ 			 			IMAQdxStopAcquisition(session1);
+ 			 			 			 			IMAQdxCloseCamera(session1);
+ 			 				frame1 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
+ 			 		 						IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session1);
+ 			 		 						IMAQdxConfigureGrab(session1);
+ 			 		 						IMAQdxStartAcquisition(session1);
+ 				cam=TRUE;
  			}
- 			imaqError1 = IMAQdxConfigureGrab(session1);
- 	 		IMAQdxStartAcquisition(session1);
-	        CameraServer::GetInstance()->SetImage(frame1);
-	 			IMAQdxStartAcquisition(session1);
-	 			 	 	 IMAQdxGrab(session1, frame1, true, NULL);
-	 			cam=1;
+ 		IMAQdxGrab(session1, frame1, true, NULL);
+ 			CameraServer::GetInstance()->SetImage(frame1);//Elmo
  		}
- 		if(cam_button1&&not cam){
- 			cam=1;
 
- 		}
- 		if(cam){
- 			  CameraServer::GetInstance()->SetImage(frame1);
- 				IMAQdxStartAcquisition(session1);
- 				 			IMAQdxGrab(session1, frame1, true, NULL);
+ 		else{
+ 			if(cam){
+ 				IMAQdxStopAcquisition(session1);
+ 			 				IMAQdxCloseCamera(session1);
+
+ 				frame2 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
+ 		 						IMAQdxOpenCamera("cam2", IMAQdxCameraControlModeController, &session2);
+ 		 						IMAQdxConfigureGrab(session2);
+ 		 						IMAQdxStartAcquisition(session2);
+ 	 					cam=FALSE;
+ 			}
+ 	 					IMAQdxGrab(session2, frame2, true, NULL);
+ 	 					 CameraServer::GetInstance()->SetImage(frame2);//BERT
  		}
 
 //CAM CONTROL
+
+
+//UNDERGLOW
+ 		underglow_prev = underglow_button;
+ 		 		underglow_button  = gamePad-> GetRawButton(8);
+ 		if((underglow_button!=underglow_prev)&&underglow_button)
+ 			 		{
+ 			 			underglow_sel= not underglow_sel;
+ 			 		}
+ 		if(underglow_sel){
+ 			underglow->Set(Relay::kForward);
+ 		}
+ 		else{
+ 			underglow->Set(Relay::kOff);
+ 		}
+//UNDERGLOW
 
 
 //SENSORS
@@ -358,9 +394,16 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
  		SmartDashboard::PutNumber("pd", reflectedLight);
  		SmartDashboard::PutNumber("bx", bx_avg);
  		SmartDashboard::PutNumber("by", by_avg);
+		SmartDashboard::PutNumber("cam", cam);
 
- 		SmartDashboard::PutData("rwheel", rwheel);
+		SmartDashboard::PutBoolean("cam_switcher", cam_switcher);
+ 		SmartDashboard::PutNumber("auto_server", auto_server);
+ 		SmartDashboard::PutNumber("l_enc", l_enc);
+ 		SmartDashboard::PutNumber("r_enc", r_enc);
+ 		SmartDashboard::PutNumber("shot_enc", shot_enc);
+//SmartDashboard::PutString("auto_server val",auto_serversub)
  	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
+
 //SMASH DASHPORD
 
 
@@ -371,3 +414,52 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
  	}
   };
  START_ROBOT_CLASS(Robot)
+/* Hardware map of the robot "Shadow"  (CB4)
+ *
+ *
+ *  RRio Pins
+ *  	DIO
+ *  	0	A right wheel encoder
+ *  	1	B "
+ *  	2	B left wheel encoder
+ *  	3	A  "
+ *  	4	B shooter wheel encoder
+ *  	5	A
+ *  	6   (bumper frame)
+ *  	7   (status LED)
+ *  	8   arm limit switch (magnetic reed switch)
+ *  	9
+ *
+ *  	Analog
+ *  	0
+ *  	1
+ *  	2
+ *  	3	AutonSelect
+ *
+ *		PWM
+ *		0  Front Left drive motor PWM
+ *		1  Front Right drive motor "
+ *		2  Back Right drive motor	"
+ *		3  back left drive motor	"
+ *		4  pickup pwm (no encoder)
+ *		5  shooter motor pwm
+ *		6  arm motor pwm
+ *		7
+ *		8
+ *		9
+ *
+ *		Relay
+ *		0   Underlighting control...
+ *		1
+ *		2
+ *		3
+ *
+ *	    Pnuematic
+ *		0  lift piston double solenoid, channel 1
+ *		1  lift piston " , channel 2
+ *		2  shooter ramp pistons double solonoid channel 1
+ *		3  schooter ramp pistons " , channel 2
+ *
+ *
+ *
+ */
