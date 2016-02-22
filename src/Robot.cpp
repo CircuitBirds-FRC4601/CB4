@@ -1,4 +1,4 @@
-#include "WPILib.h"
+  #include "WPILib.h"
 //#include <stdio.h>   //DrC may not need this one. We may want to use it if we attemp fileI/O with the code.
 #include <unistd.h>  //DrC , needed just for the usleep() function
 /*      CB4 Robot Code, team 4601 (Canfield Ohio,the Circuit Birds)
@@ -69,11 +69,33 @@
 	  	RobotDrive *ArmDrive = new RobotDrive(Arm_in,Arm_in,Arm_out,Arm_out);
 
  	LiveWindow *lw = LiveWindow::GetInstance();
+ 	SendableChooser *chooser;
+	const std::string autoNameDefault = "Low Bar";
+	const std::string autoNameCustom = "Move‽";
+	std::string autoSelected;
 
+
+ 	void RobotInit()
+ 		{
+ 			chooser = new SendableChooser();
+ 			chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
+ 			chooser->AddObject(autoNameCustom, (void*)&autoNameCustom);
+ 			SmartDashboard::PutData("Auto Modes", chooser);
+ 		}
 
 	void AutonomousInit()
 	{
+		{
+			autoSelected = *((std::string*)chooser->GetSelected());
+			//std::string autoSelected = SmartDashboard::GetString("Auto Selector", autoNameDefault);
+			std::cout << "Auto selected: " << autoSelected << std::endl;
 
+			if(autoSelected == autoNameCustom){
+			 
+			} else {
+				//Default Auto goes here
+			}
+		}
 //TEAM DISPLAY
 		Team = DriverStation::GetInstance().GetAlliance();//This is if we need to switch the magnatometer around and stuff
 	if(Team==(DriverStation::Alliance::kBlue))//E
@@ -107,53 +129,62 @@
 
  void AutonomousPeriodic()
 	{
-if(auto_server>1000000)//LOW BAR
+
 	 {
+	 		if(autoSelected == autoNameCustom){
+	 			 
+	 			 if(auto_server>1000000)//LOW BAR
+	 			 {
 
-		r_enc = abs(rwheel->GetRaw())/360;
-			l_enc = abs(lwheel->GetRaw())/360;
+	 				r_enc = abs(rwheel->GetRaw())/360;
+	 					l_enc = abs(lwheel->GetRaw())/360;
 
-	if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
-			rightgo=.7;
-	 			leftgo=.7;
-		}
+	 			if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
+	 					rightgo=.7;
+	 			 			leftgo=.7;
+	 				}
 
-		else{
-		rightgo=.0;
-		leftgo=.0;
-			rwheel->Reset();
-			lwheel->Reset();
-		forward1=TRUE;
-		}
+	 				else{
+	 				rightgo=.0;
+	 				leftgo=.0;
+	 					rwheel->Reset();
+	 					lwheel->Reset();
+	 				forward1=TRUE;
+	 				}
 
-		if(forward1&&(r_enc<=Auto1_F)&&(l_enc<=Auto1_F)){
+	 				if(forward1&&(r_enc<=Auto1_F)&&(l_enc<=Auto1_F)){
 
-		}
-		robotDrive->TankDrive(rightgo, leftgo);
-	 }
+	 				}
+	 				robotDrive->TankDrive(rightgo, leftgo);
+	 			 }
 
+	 			} 
+	 		else {
+	 			 {
+	 			 				 r_enc = abs(rwheel->GetRaw())/360;
+	 			 				l_enc = abs(lwheel->GetRaw())/360;
+	 			 		if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
+	 			 				rightgo=.7;
+	 			 					leftgo=.7;
+	 			 			}
+	 			 			else{
+	 			 			rightgo=.0;
+	 			 				leftgo=.0;
+	 			 			}
+	 			 			robotDrive->TankDrive(rightgo, leftgo);
+	 			 			 }
 
-else //Secondary Auto DRIVE FORWARD
-	 {
-		 r_enc = abs(rwheel->GetRaw())/360;
-		l_enc = abs(lwheel->GetRaw())/360;
-if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
-		rightgo=.7;
-			leftgo=.7;
+	 			 				SmartDashboard::PutNumber("auto_server", auto_server);
+	 			 				SmartDashboard::PutNumber("r_enc", r_enc);
+	 			 				SmartDashboard::PutNumber("l_enc", l_enc);
+
+	 		}
+	 			 				 		
+	 	}
+
+	 
 	}
-	else{
-	rightgo=.0;
-		leftgo=.0;
-	}
-	robotDrive->TankDrive(rightgo, leftgo);
-	 }
-
-		SmartDashboard::PutNumber("auto_server", auto_server);
-		SmartDashboard::PutNumber("r_enc", r_enc);
-		SmartDashboard::PutNumber("l_enc", l_enc);
-
-
-	}
+ 
  	void TeleopInit()
  	{
 
@@ -259,7 +290,7 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
  	 		}
 
  		shooter_shoot = gamePad -> GetRawButton(6);
- 		if((abs(shooter_shoot)>.1)/*&&(speedgood)*/){ //DrC, (bool)speedgood indicates at within window around target speed.
+ 		if((abs(shooter_shoot)>.1)&&(speedgood)){ //DrC, (bool)speedgood indicates at within window around target speed.
  			shooterWheel = -.75;
  		 }
  	else {
@@ -386,7 +417,7 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
 //SENSORS
 
 
-//SMASH DASHPORD
+//SMART DASHPORD
  		SmartDashboard::PutNumber("ax",ax);
  	    SmartDashboard::PutNumber("ay",ay);
  		SmartDashboard::PutNumber("az",az);
@@ -404,7 +435,7 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
 //SmartDashboard::PutString("auto_server val",auto_serversub)
  	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
 
-//SMASH DASHPORD
+//SMART DASHPORD
 
 
   	}
