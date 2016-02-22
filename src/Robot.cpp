@@ -11,8 +11,6 @@
 	  	bool nitroL, nitroR,cam_button,cam_button1,ramp_in,ramp_out,cam,cam_switcher;  //DrC, for speed boost in tank drive
 	  	bool pickup_pickup, piston_button,frame_act,button_led, speedgood,piston_button_prev; //DrC
 	  	int i, samples;
-	  	const std::string autoNameDefault = "Default";
-	  	const std::string autoNameCustom = "My Auto";
 	 	double leftgo,rightgo,speed,quality,Arm_in,Arm_out;  //DrC speed scales joysticks output to drive number
 	 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
 	 	double Auto1_F,auto_server;//E Auto code variables
@@ -26,6 +24,7 @@
 	  	DoubleSolenoid *piston = new DoubleSolenoid(0,1);
 	  	DoubleSolenoid *piston_ramp = new DoubleSolenoid(2,3);
 	  	Compressor *howdy= new Compressor(0);//comnpressor does not like the term compress or compressor
+		 std::string pistion_server = "None§";
 
 	  	IMAQdxSession session1;
 	  	Image *frame1;
@@ -71,8 +70,8 @@
  	LiveWindow *lw = LiveWindow::GetInstance();
  	SendableChooser *chooser;
 	const std::string autoNameDefault = "Low Bar";
-	const std::string autoNameCustom = "Move‽";
-	std::string autoSelected;
+	const std::string autoNameCustom = "Move";
+
 
 
  	void RobotInit()
@@ -91,7 +90,7 @@
 			std::cout << "Auto selected: " << autoSelected << std::endl;
 
 			if(autoSelected == autoNameCustom){
-			 
+
 			} else {
 				//Default Auto goes here
 			}
@@ -132,9 +131,6 @@
 
 	 {
 	 		if(autoSelected == autoNameCustom){
-	 			 
-	 			 if(auto_server>1000000)//LOW BAR
-	 			 {
 
 	 				r_enc = abs(rwheel->GetRaw())/360;
 	 					l_enc = abs(lwheel->GetRaw())/360;
@@ -156,11 +152,11 @@
 
 	 				}
 	 				robotDrive->TankDrive(rightgo, leftgo);
-	 			 }
 
-	 			} 
+	 			}
+
 	 		else {
-	 			 {
+
 	 			 				 r_enc = abs(rwheel->GetRaw())/360;
 	 			 				l_enc = abs(lwheel->GetRaw())/360;
 	 			 		if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
@@ -172,19 +168,19 @@
 	 			 				leftgo=.0;
 	 			 			}
 	 			 			robotDrive->TankDrive(rightgo, leftgo);
-	 			 			 }
+
 
 	 			 				SmartDashboard::PutNumber("auto_server", auto_server);
 	 			 				SmartDashboard::PutNumber("r_enc", r_enc);
 	 			 				SmartDashboard::PutNumber("l_enc", l_enc);
 
 	 		}
-	 			 				 		
+
 	 	}
 
-	 
+
 	}
- 
+
  	void TeleopInit()
  	{
 
@@ -312,9 +308,11 @@
 	 		}
  	if(frame_act){
  		piston->Set(DoubleSolenoid::Value::kForward);
+ 		pistion_server="FORWARD!";
  		}
  	else{
  		piston->Set(DoubleSolenoid::Value::kReverse);
+ 		pistion_server="REVERSE";
  		}
 
 
@@ -386,6 +384,7 @@
 
 
 //UNDERGLOW
+ 		/*
  		underglow_prev = underglow_button;
  		 		underglow_button  = gamePad-> GetRawButton(8);
  		if((underglow_button!=underglow_prev)&&underglow_button)
@@ -394,6 +393,14 @@
  			 		}
  		if(underglow_sel){
  			underglow->Set(Relay::kForward);
+ 		}
+ 		else{
+ 			underglow->Set(Relay::kOff);
+ 		}
+ 		*/
+ 		underglow_button  = gamePad-> GetRawButton(3);
+ 		if(underglow_button){
+ 			underglow->Set(Relay::kReverse);
  		}
  		else{
  			underglow->Set(Relay::kOff);
@@ -432,7 +439,7 @@
  		SmartDashboard::PutNumber("l_enc", l_enc);
  		SmartDashboard::PutNumber("r_enc", r_enc);
  		SmartDashboard::PutNumber("shot_enc", shot_enc);
-//SmartDashboard::PutString("auto_server val",auto_serversub)
+ 		SmartDashboard::PutString("Frame Pistions",pistion_server);
  	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
 
 //SMART DASHPORD
@@ -490,6 +497,8 @@
  *		1  lift piston " , channel 2
  *		2  shooter ramp pistons double solonoid channel 1
  *		3  schooter ramp pistons " , channel 2
+ *
+ *
  *
  *
  *
