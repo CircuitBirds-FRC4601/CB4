@@ -1,6 +1,6 @@
   #include "WPILib.h"
-//#include <stdio.h>   //DrC may not need this one. We may want to use it if we attemp fileI/O with the code.
-#include <unistd.h>  //DrC , needed just for the usleep() function
+//#include <stdio.h> 
+#include <unistd.h>  
 /*      CB4 Robot Code, team 4601 (Canfield Ohio,the Circuit Birds)
  *
  *
@@ -67,10 +67,10 @@
 	  	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter); //**Arm_in,Arm_out
 	  	RobotDrive *ArmDrive = new RobotDrive(Arm_in,Arm_in,Arm_out,Arm_out);
 
- 	LiveWindow *lw = LiveWindow::GetInstance();
- 	SendableChooser *chooser;
-	const std::string autoNameDefault = "Low Bar";
-	const std::string autoNameCustom = "Move";
+	  	LiveWindow *lw = LiveWindow::GetInstance();
+	  	SendableChooser *chooser;
+	  	const std::string autoNameDefault = "Low Bar";
+	  	const std::string autoNameCustom = "Move";
 
 
 
@@ -90,25 +90,25 @@
 			std::cout << "Auto selected: " << autoSelected << std::endl;
 
 			if(autoSelected == autoNameCustom){
-
-			} else {
+				}
+			 else {
 				//Default Auto goes here
 			}
 		}
-//TEAM DISPLAY
+		//TEAM DISPLAY
 		Team = DriverStation::GetInstance().GetAlliance();//This is if we need to switch the magnatometer around and stuff
-	if(Team==(DriverStation::Alliance::kBlue))//E
-		{
-			SmartDashboard::PutString("Team","Blue!");
-		//mag=normal
-		}
-	else if(Team==(DriverStation::Alliance::kRed)){
-		SmartDashboard::PutString("Team","Red!");
-		//switch the magnetometer value
-		}
-	else{
-	SmartDashboard::PutString("Team","NONE?");
-		}
+			if(Team==(DriverStation::Alliance::kBlue))//E
+					{
+				SmartDashboard::PutString("Team","Blue!");
+					//mag=normal
+					}
+				else if(Team==(DriverStation::Alliance::kRed)){
+					SmartDashboard::PutString("Team","Red!");
+						//switch the magnetometer value
+						}
+					else{
+						SmartDashboard::PutString("Team","NONE?");
+						}
 //TEAM DISPLAY
 
 
@@ -133,46 +133,46 @@
 	 		if(autoSelected == autoNameCustom){
 
 	 				r_enc = abs(rwheel->GetRaw())/360;
-	 					l_enc = abs(lwheel->GetRaw())/360;
+	 				l_enc = abs(lwheel->GetRaw())/360;
 
 	 			if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
-	 					rightgo=.7;
-	 			 			leftgo=.7;
+	 				rightgo=.7;
+	 			 	leftgo=.7;
 	 				}
 
 	 				else{
-	 				rightgo=.0;
-	 				leftgo=.0;
+	 					rightgo=.0;
+	 					leftgo=.0;
 	 					rwheel->Reset();
 	 					lwheel->Reset();
-	 				forward1=TRUE;
-	 				}
+	 					forward1=TRUE;
+	 					}
 
-	 				if(forward1&&(r_enc<=Auto1_F)&&(l_enc<=Auto1_F)){
+	 			if(forward1&&(r_enc<=Auto1_F)&&(l_enc<=Auto1_F)){
 
 	 				}
 	 				robotDrive->TankDrive(rightgo, leftgo);
 
-	 			}
+	 				}
 
-	 		else {
+	 				else {
 
-	 			 				 r_enc = abs(rwheel->GetRaw())/360;
-	 			 				l_enc = abs(lwheel->GetRaw())/360;
-	 			 		if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
-	 			 				rightgo=.7;
-	 			 					leftgo=.7;
+	 			 	    r_enc = abs(rwheel->GetRaw())/360;
+	 			 		l_enc = abs(lwheel->GetRaw())/360;
+	 			 if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
+	 			 		rightgo=.7;
+	 			 		leftgo=.7;
 	 			 			}
-	 			 			else{
-	 			 			rightgo=.0;
-	 			 				leftgo=.0;
+	 			 	else{
+	 			 		rightgo=.0;
+	 			 		leftgo=.0;
 	 			 			}
-	 			 			robotDrive->TankDrive(rightgo, leftgo);
+	 			 		robotDrive->TankDrive(rightgo, leftgo);
 
 
-	 			 				SmartDashboard::PutNumber("auto_server", auto_server);
-	 			 				SmartDashboard::PutNumber("r_enc", r_enc);
-	 			 				SmartDashboard::PutNumber("l_enc", l_enc);
+	 			 		SmartDashboard::PutNumber("auto_server", auto_server);
+	 			 		SmartDashboard::PutNumber("r_enc", r_enc);
+	 			 		SmartDashboard::PutNumber("l_enc", l_enc);
 
 	 		}
 
@@ -221,15 +221,15 @@
   		r_enc=lwheel->GetRaw();
   		l_enc=rwheel->GetRaw();
   		shot_enc=shooterwheel->GetRaw();
-   auto_server=Auto_sel->GetValue();  // for testing only
-   if(auto_server<=300){
-	   auto_serversub=1;
-   }
-   else if(auto_server<=800){
-	   auto_serversub=2;
+  		auto_server=Auto_sel->GetValue();  // for testing only
+  	 if(auto_server<=300){
+	    auto_serversub=1;
+  	 }
+  	 	 else if(auto_server<=800){
+	     auto_serversub=2;
     }
-   else if(auto_server<=1800){
-	   auto_serversub=3;
+  	 	 	 else if(auto_server<=1800){
+	         auto_serversub=3;
       }
  //DRIVE CONTROL
   		rightgo = rightDrive-> GetRawAxis(1);
@@ -265,10 +265,10 @@
  	if(abs(pickup_kickballout)>.1){
  			pickupWheel = 0.7;
  		}
- 	else if(pickup_pickup){
+ 		else if(pickup_pickup){
  			pickupWheel = -0.7;
  		}
- 	else{
+ 			else{
  			pickupWheel=0.0;
  		}
 // PICKUP WHEEL
@@ -280,10 +280,10 @@
  		if(abs(shooter_shoot)>.1){
  			shooterWheel = -.75;
  		 }
- 	else {
+ 			else {
  			shooterWheel = 0.0;
- 		 }
- 		pickupShooter->TankDrive(pickupWheel,shooterWheel);
+ 			}
+ 			pickupShooter->TankDrive(pickupWheel,shooterWheel);
 //SHOOTER WHEEL
 
 
@@ -297,21 +297,21 @@
 	 		{
 	 			frame_act= not frame_act;
 	 		}
- 	if(frame_act){
- 		piston->Set(DoubleSolenoid::Value::kForward);
- 		pistion_server="FORWARD!";
+		if(frame_act){
+			piston->Set(DoubleSolenoid::Value::kForward);
+			pistion_server="FORWARD!";
  		}
- 	else{
- 		piston->Set(DoubleSolenoid::Value::kReverse);
- 		pistion_server="RETREAT";
- 		}
+			else{
+				piston->Set(DoubleSolenoid::Value::kReverse);
+				pistion_server="RETREAT";
+				}
 
 
 
- 	if((ramp_in)&&(not ramp_out)){
+		if((ramp_in)&&(not ramp_out)){
  			piston_ramp->Set(DoubleSolenoid::Value::kForward);
  		}
- 	if((ramp_out)&&(not ramp_in)){
+		if((ramp_out)&&(not ramp_in)){
  			piston_ramp->Set(DoubleSolenoid::Value::kReverse);
  		}
 //END OF PISTON CONTROL AREA
@@ -322,16 +322,16 @@
  	Arm_buttonout=gamePad->GetRawButton(3);
  	if(lswitch_arm){
  		Arm->Set(0);
- 	}
- 	else if(Arm_buttonin&&not Arm_buttonout&&not lswitch_arm){
- 		Arm->Set(.5);
- 	}
- 	else if(not Arm_buttonin&& Arm_buttonout&&not lswitch_arm){
- 		Arm->Set(-.5);
- 	 	}
- 	else{
-		Arm->Set(0);
- 	}
+ 		}
+ 		else if(Arm_buttonin&&not Arm_buttonout&&not lswitch_arm){
+ 				Arm->Set(.5);
+ 			}
+ 			else if(not Arm_buttonin&& Arm_buttonout&&not lswitch_arm){
+ 					Arm->Set(-.5);
+ 				}
+ 				else{
+ 						Arm->Set(0);
+ 					}
 
 
 //CAMERA CONTROL
@@ -391,11 +391,11 @@
  		*/
  		underglow_button  = gamePad-> GetRawButton(3);
  		if(underglow_button){
- 			underglow->Set(Relay::kForward);
- 		}
- 		else{
+ 		   underglow->Set(Relay::kForward);
+ 			}
+ 			else{
  			underglow->Set(Relay::kOff);
- 		}
+ 			}
 //UNDERGLOW
 
 
@@ -492,4 +492,4 @@
  *
  *
  *
- */
+ */					
