@@ -1,4 +1,4 @@
-#include "WPILib.h"
+  #include "WPILib.h"
 //#include <stdio.h>   //DrC may not need this one. We may want to use it if we attemp fileI/O with the code.
 #include <unistd.h>  //DrC , needed just for the usleep() function
 /*      CB4 Robot Code, team 4601 (Canfield Ohio,the Circuit Birds)
@@ -211,7 +211,7 @@
  				piston_button_prev=0;
  				cam=FALSE;
  				cam_switcher=FALSE;
-
+ 				underglow->Set(Relay::kOff);
 //TELOP DECLERATIONS
 
  	}
@@ -275,18 +275,9 @@
 
 
 //SHOOTER WHEEL
- 		swheelspeed = shooterwheel->GetRate();
- 	 		shotspeed = shotspeed*(1.0-savg)+savg*swheelspeed;
-
- 	 if (abs(shotspeed-starget)/starget<swindow){
- 	 			speedgood=TRUE;
- 	 		}
- 	 else{
- 	 			speedgood=FALSE;
- 	 		}
-
  		shooter_shoot = gamePad -> GetRawButton(6);
- 		if((abs(shooter_shoot)>.1)&&(speedgood)){ //DrC, (bool)speedgood indicates at within window around target speed.
+
+ 		if(abs(shooter_shoot)>.1){
  			shooterWheel = -.75;
  		 }
  	else {
@@ -312,7 +303,7 @@
  		}
  	else{
  		piston->Set(DoubleSolenoid::Value::kReverse);
- 		pistion_server="REVERSE";
+ 		pistion_server="RETREAT";
  		}
 
 
@@ -400,7 +391,7 @@
  		*/
  		underglow_button  = gamePad-> GetRawButton(3);
  		if(underglow_button){
- 			underglow->Set(Relay::kReverse);
+ 			underglow->Set(Relay::kForward);
  		}
  		else{
  			underglow->Set(Relay::kOff);
@@ -443,7 +434,6 @@
  	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
 
 //SMART DASHPORD
-
 
   	}
   	void TestPeriodic()
