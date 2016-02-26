@@ -1,6 +1,6 @@
-  #include "WPILib.h"
-//#include <stdio.h> 
-#include <unistd.h>  
+#include "WPILib.h"
+//#include <stdio.h>
+#include <unistd.h>
 /*      CB4 Robot Code, team 4601 (Canfield Ohio,the Circuit Birds)
  *
  *
@@ -318,19 +318,19 @@
 
 
 //ARM CONTROL
- 	Arm_buttonin=gamePad->GetRawButton(1);
- 	Arm_buttonout=gamePad->GetRawButton(3);
- 	if(lswitch_arm){
+ 	Arm_buttonin= gamePad->GetRawButton(1);
+ 	Arm_buttonout= gamePad->GetRawButton(3);
+ /*	if(lswitch_arm){
  		Arm->Set(0);
- 		}
- 		else if(Arm_buttonin&&not Arm_buttonout&&not lswitch_arm){
- 				Arm->Set(.5);
+ 		}*/
+ 		/*else*/ if(Arm_buttonin){
+ 				Arm->Set(.5,0);
  			}
- 			else if(not Arm_buttonin&& Arm_buttonout&&not lswitch_arm){
+ 			else if(Arm_buttonout){
  					Arm->Set(-.5);
  				}
  				else{
- 						Arm->Set(0);
+ 						Arm->Set(0,0);
  					}
 
 
@@ -492,4 +492,4 @@
  *
  *
  *
- */					
+ */
