@@ -14,9 +14,9 @@
 	 	double leftgo,rightgo,speed,quality,Arm_in,Arm_out;  //DrC speed scales joysticks output to drive number
 	 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
 	 	double Auto1_F,auto_server;//E Auto code variables
-	 	int r_enc,l_enc,shot_enc,auto_serversub;
+	 	int r_enc,l_enc,shot_enc,auto_serversub,arm_dir;
 		bool forward1;//things for auto
-		bool Arm_buttonin,Arm_buttonout;
+		bool Arm_buttonin,Arm_buttonout,stop_arm;
 		bool underglow_button,underglow_prev,underglow_sel;
 
 	 	std::string autoSelected;
@@ -25,6 +25,7 @@
 	  	DoubleSolenoid *piston_ramp = new DoubleSolenoid(2,3);
 	  	Compressor *howdy= new Compressor(0);//comnpressor does not like the term compress or compressor
 		 std::string pistion_server = "None§";
+		 std::string pistionramp_server="None§";
 
 	  	IMAQdxSession session1;
 	  	Image *frame1;
@@ -43,7 +44,7 @@
 	  	Talon *bLeft = new Talon(3);
 	  	Talon *pickup = new Talon(4);// pickup
 	  	Talon *shooter = new Talon(5);// main shooterwheel
-		Talon *Arm = new Talon(6);
+		Talon *Arm = new Talon(7);
 
 		AnalogInput *Bx = new AnalogInput(0); //DrC  magnetic x component
 		AnalogInput *By = new AnalogInput(1); //DrC  magnetic y component
@@ -212,10 +213,10 @@
  				cam=FALSE;
  				cam_switcher=FALSE;
  				underglow->Set(Relay::kOff);
+ 				arm_dir=0;
+ 				stop_arm=1;
 //TELOP DECLERATIONS
-
  	}
-
   	void TeleopPeriodic()
   	{
   		r_enc=lwheel->GetRaw();
@@ -292,7 +293,6 @@
  		piston_button  = leftDrive-> GetRawButton(1);
  		ramp_in=gamePad->GetRawButton(4);
  	 	ramp_out=gamePad->GetRawButton(2);
-
 		if((piston_button!=piston_button_prev)&&piston_button)
 	 		{
 	 			frame_act= not frame_act;
@@ -305,14 +305,13 @@
 				piston->Set(DoubleSolenoid::Value::kReverse);
 				pistion_server="RETREAT";
 				}
-
-
-
 		if((ramp_in)&&(not ramp_out)){
  			piston_ramp->Set(DoubleSolenoid::Value::kForward);
+ 			pistionramp_server="FORWARD!";
  		}
 		if((ramp_out)&&(not ramp_in)){
  			piston_ramp->Set(DoubleSolenoid::Value::kReverse);
+ 			pistionramp_server="RETREAT";
  		}
 //END OF PISTON CONTROL AREA
 
@@ -320,19 +319,24 @@
 //ARM CONTROL
  	Arm_buttonin= gamePad->GetRawButton(1);
  	Arm_buttonout= gamePad->GetRawButton(3);
- /*	if(lswitch_arm){
- 		Arm->Set(0);
- 		}*/
- 		/*else*/ if(Arm_buttonin){
- 				Arm->Set(.5,0);
+ 	stop_arm=lswitch_arm->Get();
+	if(not stop_arm){
+	 		Arm->Set(-.5*arm_dir);
+	 		usleep(400);
+	 		arm_dir=0;
+	 		}
+	else if(Arm_buttonin){
+ 				Arm->Set(.5);
+ 				arm_dir=1;
+			}
+ 	else if(Arm_buttonout){
+ 				Arm->Set(-.5);
+ 				arm_dir=-1;
  			}
- 			else if(Arm_buttonout){
- 					Arm->Set(-.5);
- 				}
- 				else{
- 						Arm->Set(0,0);
- 					}
-
+ 	else{
+ 		Arm->Set(0);
+ 		}
+SmartDashboard::PutBoolean("STOOOOOPP!",stop_arm);
 
 //CAMERA CONTROL
  		cam_button=leftDrive->GetRawButton(2);
@@ -431,7 +435,9 @@
  		SmartDashboard::PutNumber("r_enc", r_enc);
  		SmartDashboard::PutNumber("shot_enc", shot_enc);
  		SmartDashboard::PutString("Frame Pistions",pistion_server);
+ 		SmartDashboard::PutString("Ramp Pistions",pistionramp_server);
  	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
+
 
 //SMART DASHPORD
 
@@ -471,8 +477,8 @@
  *		3  back left drive motor	"
  *		4  pickup pwm (no encoder)
  *		5  shooter motor pwm
- *		6  arm motor pwm
- *		7
+ *		6   
+ *		7 arm motor pwm
  *		8
  *		9
  *
