@@ -13,10 +13,10 @@
 	  	int i, samples;
 	 	double leftgo,rightgo,speed,quality,Arm_in,Arm_out;  //DrC speed scales joysticks output to drive number
 	 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
-	 	double Auto1_F,auto_server;//E Auto code variables
+	 	double auto_F,auto_server,Autolow_F;//E Auto code variables
 	 	int r_enc,l_enc,shot_enc,auto_serversub,arm_dir;
-		bool forward1;//things for auto
-		bool Arm_buttonin,Arm_buttonout,stop_arm;
+		bool forward1,to_ramp;//things for auto
+		bool Arm_buttonin,Arm_buttonout,stop_arm,shooter_shootrev;
 		bool underglow_button,underglow_prev,underglow_sel;
 
 	 	std::string autoSelected;
@@ -69,18 +69,18 @@
 	  	RobotDrive *ArmDrive = new RobotDrive(Arm_in,Arm_in,Arm_out,Arm_out);
 
 	  	LiveWindow *lw = LiveWindow::GetInstance();
-	  	SendableChooser *chooser;
-	  	const std::string autoNameDefault = "Low Bar";
-	  	const std::string autoNameCustom = "Move";
+	  	SendableChooser *chooser = new SendableChooser();
+	  	const std::string autoNameDefault = "Low Bar§";//needs fixed still broken
+	  	const std::string autoNameCustom = "FORWARD!!!!!!";
 
 
 
  	void RobotInit()
  		{
- 			chooser = new SendableChooser();
  			chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
  			chooser->AddObject(autoNameCustom, (void*)&autoNameCustom);
  			SmartDashboard::PutData("Auto Modes", chooser);
+
  		}
 
 	void AutonomousInit()
@@ -96,9 +96,9 @@
 				//Default Auto goes here
 			}
 		}
-		//TEAM DISPLAY
+		/*//TEAM DISPLAY
 		Team = DriverStation::GetInstance().GetAlliance();//This is if we need to switch the magnatometer around and stuff
-			if(Team==(DriverStation::Alliance::kBlue))//E
+			if(Team==(DriverStation::Alliance::kBlue))
 					{
 				SmartDashboard::PutString("Team","Blue!");
 					//mag=normal
@@ -108,9 +108,9 @@
 						//switch the magnetometer value
 						}
 					else{
-						SmartDashboard::PutString("Team","NONE?");
+						SmartDashboard::PutString("Team","NONE?!");
 						}
-//TEAM DISPLAY
+//TEAM DISPLAY*/
 
 
 //AUTO
@@ -121,66 +121,73 @@
 		piston_ramp->Set(DoubleSolenoid::Value::kOff);
 		piston->Set(DoubleSolenoid::Value::kOff);
 
-		Auto1_F=137.5;//50 rotations is about 25 in // 137.5 should get us past the outer works mabey so about 68.75 in so about half a foot past start of outer works
+		auto_F=68.75;//50 rotations is about 25 in // 137.5 should get us past the outer works mabey so about 68.75 in so about half a foot past start of outer works
 		forward1=0;
+		to_ramp=0;
+		cam=0;
+		r_enc=0;
+		r_enc=0;
 		auto_server=Auto_sel->GetValue();
+		cam=FALSE;
 //AUTO
 }
 
  void AutonomousPeriodic()
 	{
 
-	 {
-	 		if(autoSelected == autoNameCustom){
+		r_enc = abs(rwheel->GetRaw())/360;
+	 	l_enc = abs(lwheel->GetRaw())/360;
 
-	 				r_enc = abs(rwheel->GetRaw())/360;
-	 				l_enc = abs(lwheel->GetRaw())/360;
+	 		if(autoSelected == autoNameCustom){ //forward
 
-	 			if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
-	 				rightgo=.7;
-	 			 	leftgo=.7;
+	 			if((r_enc<=auto_F)&&(l_enc<=auto_F)&& not forward1){
+	 				rightgo=.5;
+	 			 	leftgo=.5;
 	 				}
 
-	 				else{
-	 					rightgo=.0;
-	 					leftgo=.0;
+	 				else if(not forward1) {
+	 					rightgo=0;
+	 					leftgo=0;
 	 					rwheel->Reset();
 	 					lwheel->Reset();
 	 					forward1=TRUE;
 	 					}
-
-	 			if(forward1&&(r_enc<=Auto1_F)&&(l_enc<=Auto1_F)){
-
 	 				}
-	 				robotDrive->TankDrive(rightgo, leftgo);
+	 			if(autoSelected == autoNameDefault) {//lowbar
+	 					if((r_enc<=auto_F)&&(l_enc<=auto_F)&& not forward1){
+	 					 rightgo=-.5;
+	 					 leftgo=-.5;
+	 					}
 
+	 				else if(not forward1) {
+	 					 	rightgo=0;
+	 					 	leftgo=0;
+	 					 	rwheel->Reset();
+	 					 	lwheel->Reset();
+	 					 	forward1=TRUE;
 	 				}
 
-	 				else {
+	 			}
+	robotDrive->TankDrive(rightgo, leftgo);
 
-	 			 	    r_enc = abs(rwheel->GetRaw())/360;
-	 			 		l_enc = abs(lwheel->GetRaw())/360;
-	 			 if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
-	 			 		rightgo=.7;
-	 			 		leftgo=.7;
-	 			 			}
-	 			 	else{
-	 			 		rightgo=.0;
-	 			 		leftgo=.0;
-	 			 			}
-	 			 		robotDrive->TankDrive(rightgo, leftgo);
+			SmartDashboard::PutNumber("auto_server", auto_server);
+			SmartDashboard::PutNumber("r_enc", r_enc);
+		 	SmartDashboard::PutNumber("l_enc", l_enc);
+		 	if(not cam){
+		 	 				IMAQdxStopAcquisition(session2);
+		 	 			 			IMAQdxCloseCamera(session2);
 
-
-	 			 		SmartDashboard::PutNumber("auto_server", auto_server);
-	 			 		SmartDashboard::PutNumber("r_enc", r_enc);
-	 			 		SmartDashboard::PutNumber("l_enc", l_enc);
-
-	 		}
-
+		 	 			 			IMAQdxStopAcquisition(session1);
+		 	 			 			 			 			IMAQdxCloseCamera(session1);
+		 	 			 				frame1 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
+		 	 			 		 						IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session1);
+		 	 			 		 						IMAQdxConfigureGrab(session1);
+		 	 			 		 						IMAQdxStartAcquisition(session1);
+		 	 				cam=TRUE;
+		 	 			}
+		 	 		IMAQdxGrab(session1, frame1, true, NULL);
+		 	 			CameraServer::GetInstance()->SetImage(frame1);//Elmo
 	 	}
-
-
-	}
 
  	void TeleopInit()
  	{
@@ -219,10 +226,11 @@
  	}
   	void TeleopPeriodic()
   	{
+
   		r_enc=lwheel->GetRaw();
-  		l_enc=rwheel->GetRaw();
+  	  	l_enc=rwheel->GetRaw();
   		shot_enc=shooterwheel->GetRaw();
-  		auto_server=Auto_sel->GetValue();  // for testing only
+/*  		auto_server=Auto_sel->GetValue();  // for testing only
   	 if(auto_server<=300){
 	    auto_serversub=1;
   	 }
@@ -231,7 +239,7 @@
     }
   	 	 	 else if(auto_server<=1800){
 	         auto_serversub=3;
-      }
+    }*/
  //DRIVE CONTROL
   		rightgo = rightDrive-> GetRawAxis(1);
  		leftgo  = leftDrive-> GetRawAxis(1);
@@ -277,10 +285,13 @@
 
 //SHOOTER WHEEL
  		shooter_shoot = gamePad -> GetRawButton(6);
-
- 		if(abs(shooter_shoot)>.1){
+ 		shooter_shootrev =gamePad->GetRawButton(5);
+ 		if(shooter_shoot&&not shooter_shootrev){
  			shooterWheel = -.75;
  		 }
+ 		else if (not shooter_shoot&&shooter_shootrev){
+ 			shooterWheel = .75;
+ 		}
  			else {
  			shooterWheel = 0.0;
  			}
@@ -427,7 +438,6 @@ SmartDashboard::PutBoolean("STOOOOOPP!",stop_arm);
  		SmartDashboard::PutNumber("pd", reflectedLight);
  		SmartDashboard::PutNumber("bx", bx_avg);
  		SmartDashboard::PutNumber("by", by_avg);
-		SmartDashboard::PutNumber("cam", cam);
 
 		SmartDashboard::PutBoolean("cam_switcher", cam_switcher);
  		SmartDashboard::PutNumber("auto_server", auto_server);
@@ -477,7 +487,7 @@ SmartDashboard::PutBoolean("STOOOOOPP!",stop_arm);
  *		3  back left drive motor	"
  *		4  pickup pwm (no encoder)
  *		5  shooter motor pwm
- *		6   
+ *		6  may be broken
  *		7 arm motor pwm
  *		8
  *		9
