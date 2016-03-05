@@ -16,7 +16,7 @@
 	 	double auto_F,auto_server,Autolow_F;//E Auto code variables
 	 	int r_enc,l_enc,shot_enc,auto_serversub,arm_dir;
 		bool forward1,to_ramp;//things for auto
-		bool Arm_buttonin,Arm_buttonout,stop_arm,shooter_shootrev;
+		bool Arm_buttonin,Arm_buttonout,stop_arm,shooter_shootrev,rumble_button;
 		bool underglow_button,underglow_prev,underglow_sel;
 
 	 	std::string autoSelected;
@@ -56,7 +56,7 @@
 
 		DigitalOutput *leds1 = new DigitalOutput(7);//status 1
 
-		DigitalInput *lswitch_arm = new DigitalInput(8);//reads the arm limit switch
+		DigitalInput *lswitch_arm = new DigitalInput(9);//reads the arm limit switch
 
 		Encoder *shooterwheel =new Encoder(4,5);
 		Encoder *lwheel = new Encoder(0,1);
@@ -70,7 +70,7 @@
 
 	  	LiveWindow *lw = LiveWindow::GetInstance();
 	  	SendableChooser *chooser = new SendableChooser();
-	  	const std::string autoNameDefault = "Low Bar§";//needs fixed still broken
+	  	const std::string autoNameDefault = "Low Bar§";
 	  	const std::string autoNameCustom = "FORWARD!!!!!!";
 
 
@@ -113,6 +113,8 @@
 //TEAM DISPLAY*/
 
 
+
+
 //AUTO
 		shooterwheel->Reset();
 		rwheel->Reset();
@@ -134,7 +136,6 @@
 
  void AutonomousPeriodic()
 	{
-
 		r_enc = abs(rwheel->GetRaw())/360;
 	 	l_enc = abs(lwheel->GetRaw())/360;
 
@@ -145,18 +146,21 @@
 	 			 	leftgo=.5;
 	 				}
 
-	 				else if(not forward1) {
+	 				else if(not forward1){
 	 					rightgo=0;
 	 					leftgo=0;
 	 					rwheel->Reset();
 	 					lwheel->Reset();
 	 					forward1=TRUE;
 	 					}
+
 	 				}
+
 	 			if(autoSelected == autoNameDefault) {//lowbar
+
 	 					if((r_enc<=auto_F)&&(l_enc<=auto_F)&& not forward1){
-	 					 rightgo=-.5;
-	 					 leftgo=-.5;
+	 					 rightgo=.5;
+	 					 leftgo=.5;
 	 					}
 
 	 				else if(not forward1) {
@@ -168,11 +172,13 @@
 	 				}
 
 	 			}
+
 	robotDrive->TankDrive(rightgo, leftgo);
 
 			SmartDashboard::PutNumber("auto_server", auto_server);
 			SmartDashboard::PutNumber("r_enc", r_enc);
 		 	SmartDashboard::PutNumber("l_enc", l_enc);
+
 		 	if(not cam){
 		 	 				IMAQdxStopAcquisition(session2);
 		 	 			 			IMAQdxCloseCamera(session2);
@@ -186,7 +192,8 @@
 		 	 				cam=TRUE;
 		 	 			}
 		 	 		IMAQdxGrab(session1, frame1, true, NULL);
-		 	 			CameraServer::GetInstance()->SetImage(frame1);//Elmo
+		 	 	CameraServer::GetInstance()->SetImage(frame1);//Elmo
+
 	 	}
 
  	void TeleopInit()
@@ -222,14 +229,15 @@
  				underglow->Set(Relay::kOff);
  				arm_dir=0;
  				stop_arm=1;
+
 //TELOP DECLERATIONS
  	}
+
   	void TeleopPeriodic()
   	{
 
   		r_enc=lwheel->GetRaw();
   	  	l_enc=rwheel->GetRaw();
-  		shot_enc=shooterwheel->GetRaw();
 /*  		auto_server=Auto_sel->GetValue();  // for testing only
   	 if(auto_server<=300){
 	    auto_serversub=1;
@@ -271,6 +279,7 @@
 // PICKUPWHEEL
  		pickup_kickballout = gamePad -> GetRawAxis(2);
  		pickup_pickup = gamePad -> GetRawAxis(3);
+
  	if(abs(pickup_kickballout)>.1){
  			pickupWheel = 0.7;
  		}
@@ -286,6 +295,16 @@
 //SHOOTER WHEEL
  		shooter_shoot = gamePad -> GetRawButton(6);
  		shooter_shootrev =gamePad->GetRawButton(5);
+  		shot_enc=shooterwheel->GetRaw();
+  		rumble_button=gamePad->GetRawButton(7);
+  		if(rumble_button){
+  			gamePad->SetRumble(Joystick::RumbleType::kRightRumble,1);
+  			gamePad->SetRumble(Joystick::RumbleType::kLeftRumble,1);
+  		}
+  		else{
+  			gamePad->SetRumble(Joystick::RumbleType::kRightRumble,0);
+  		  	gamePad->SetRumble(Joystick::RumbleType::kLeftRumble,0);
+  		}
  		if(shooter_shoot&&not shooter_shootrev){
  			shooterWheel = -.75;
  		 }
