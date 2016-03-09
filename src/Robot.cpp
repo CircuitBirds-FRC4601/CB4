@@ -14,11 +14,11 @@
 	 	double leftgo,rightgo,speed,quality,Arm_in,Arm_out;  //DrC speed scales joysticks output to drive number
 	 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
 	 	double auto_F,auto_server,Autolow_F;//E Auto code variables
-	 	int r_enc,l_enc,shot_enc,auto_serversub,arm_dir;
+	 	int r_enc,l_enc,auto_serversub,arm_dir;
 		bool forward1,to_ramp;//things for auto
-		bool Arm_buttonin,Arm_buttonout,stop_arm,shooter_shootrev,rumble_button;
+		bool Arm_buttonin,Arm_buttonout,stop_arm1,stop_arm2,shooter_shootrev,rumble_button;
 		bool underglow_button,underglow_prev,underglow_sel;
-
+	  	double shotreader;
 	 	std::string autoSelected;
 
 	  	DoubleSolenoid *piston = new DoubleSolenoid(0,1);
@@ -56,7 +56,8 @@
 
 		DigitalOutput *leds1 = new DigitalOutput(7);//status 1
 
-		DigitalInput *lswitch_arm = new DigitalInput(9);//reads the arm limit switch
+		DigitalInput *lswitch_arm1 = new DigitalInput(8);//reads the arm limit switch
+		DigitalInput *lswitch_arm2 = new DigitalInput(9);
 
 		Encoder *shooterwheel =new Encoder(4,5);
 		Encoder *lwheel = new Encoder(0,1);
@@ -70,17 +71,14 @@
 
 	  	LiveWindow *lw = LiveWindow::GetInstance();
 	  	SendableChooser *chooser = new SendableChooser();
-	  	const std::string autoNameDefault = "Low Bar§";
+	  	const std::string autoNameDefault = "Low Bar§";//needs fixed still broken
 	  	const std::string autoNameCustom = "FORWARD!!!!!!";
-
-
 
  	void RobotInit()
  		{
  			chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
  			chooser->AddObject(autoNameCustom, (void*)&autoNameCustom);
  			SmartDashboard::PutData("Auto Modes", chooser);
-
  		}
 
 	void AutonomousInit()
@@ -193,7 +191,6 @@
 		 	 			}
 		 	 		IMAQdxGrab(session1, frame1, true, NULL);
 		 	 	CameraServer::GetInstance()->SetImage(frame1);//Elmo
-
 	 	}
 
  	void TeleopInit()
@@ -228,16 +225,20 @@
  				cam_switcher=FALSE;
  				underglow->Set(Relay::kOff);
  				arm_dir=0;
- 				stop_arm=1;
-
+ 				stop_arm2=1;
+ 				stop_arm1=1;
+ 				shotspeed=0;
 //TELOP DECLERATIONS
  	}
+
+
 
   	void TeleopPeriodic()
   	{
 
   		r_enc=lwheel->GetRaw();
   	  	l_enc=rwheel->GetRaw();
+
 /*  		auto_server=Auto_sel->GetValue();  // for testing only
   	 if(auto_server<=300){
 	    auto_serversub=1;
@@ -255,6 +256,7 @@
  		nitroL   = leftDrive-> GetRawButton(3);
  		rightgo = -(speed+(1.0-speed)*(double)(nitroR))*rightgo;
  		leftgo  = -(speed+(1.0-speed)*(double)(nitroL))*leftgo;
+
  		robotDrive->TankDrive(rightgo, leftgo);
 //DRIVE CONTROL
 
@@ -295,18 +297,10 @@
 //SHOOTER WHEEL
  		shooter_shoot = gamePad -> GetRawButton(6);
  		shooter_shootrev =gamePad->GetRawButton(5);
-  		shot_enc=shooterwheel->GetRaw();
-  		rumble_button=gamePad->GetRawButton(7);
-  		if(rumble_button){
-  			gamePad->SetRumble(Joystick::RumbleType::kRightRumble,1);
-  			gamePad->SetRumble(Joystick::RumbleType::kLeftRumble,1);
-  		}
-  		else{
-  			gamePad->SetRumble(Joystick::RumbleType::kRightRumble,0);
-  		  	gamePad->SetRumble(Joystick::RumbleType::kLeftRumble,0);
-  		}
+
  		if(shooter_shoot&&not shooter_shootrev){
  			shooterWheel = -.75;
+
  		 }
  		else if (not shooter_shoot&&shooter_shootrev){
  			shooterWheel = .75;
@@ -315,6 +309,26 @@
  			shooterWheel = 0.0;
  			}
  			pickupShooter->TankDrive(pickupWheel,shooterWheel);
+
+ 			shotreader=rwheel->GetPeriod();
+/*
+ 			 		 if(abs(shotreader)<=0.00000){
+ 			 			 shotspeed=1;
+ 			 		 }
+ 			 		else{
+ 					shotspeed=0;
+ 			 		}
+
+ 			  		if(shotspeed){
+ 			  			gamePad->SetRumble(Joystick::RumbleType::kRightRumble,1);
+ 			  			gamePad->SetRumble(Joystick::RumbleType::kLeftRumble,1);
+ 			  		}
+ 			  		else{
+ 			  			gamePad->SetRumble(Joystick::RumbleType::kRightRumble,0);
+ 			  		  	gamePad->SetRumble(Joystick::RumbleType::kLeftRumble,0);
+ 			  		}
+*/
+ 			  		SmartDashboard::PutNumber("shotreader",shotreader);
 //SHOOTER WHEEL
 
 
@@ -347,26 +361,42 @@
 
 
 //ARM CONTROL
- 	Arm_buttonin= gamePad->GetRawButton(1);
- 	Arm_buttonout= gamePad->GetRawButton(3);
- 	stop_arm=lswitch_arm->Get();
-	if(not stop_arm){
+	 	stop_arm1=lswitch_arm1->Get();
+	 	stop_arm2=lswitch_arm2->Get();
+	 	if(stop_arm1){
+	 		Arm_buttonin= gamePad->GetRawButton(1);
+	 	}
+	 	else{
+	 		Arm_buttonin=0;
+	 	}
+	 	if(stop_arm2){
+	 		Arm_buttonout= gamePad->GetRawButton(3);
+	 	}
+	 	else{
+	 		Arm_buttonout=0;
+	 	}
+
+
+
+
+	/*if(not stop_arm2){
 	 		Arm->Set(-.5*arm_dir);
 	 		usleep(400);
 	 		arm_dir=0;
 	 		}
-	else if(Arm_buttonin){
- 				Arm->Set(.5);
- 				arm_dir=1;
+	else */if(Arm_buttonin){
+ 				Arm->Set(-.25);
+ 				//arm_dir=1;
 			}
  	else if(Arm_buttonout){
- 				Arm->Set(-.5);
- 				arm_dir=-1;
+ 				Arm->Set(.25);
+ 				//arm_dir=-1;
  			}
  	else{
  		Arm->Set(0);
  		}
-SmartDashboard::PutBoolean("STOOOOOPP!",stop_arm);
+SmartDashboard::PutBoolean("STOOOOOPP!2",stop_arm2);
+SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
 
 //CAMERA CONTROL
  		cam_button=leftDrive->GetRawButton(2);
@@ -387,6 +417,7 @@ SmartDashboard::PutBoolean("STOOOOOPP!",stop_arm);
  				cam=TRUE;
  			}
  		IMAQdxGrab(session1, frame1, true, NULL);
+
  			CameraServer::GetInstance()->SetImage(frame1);//Elmo
  		}
 
@@ -396,7 +427,7 @@ SmartDashboard::PutBoolean("STOOOOOPP!",stop_arm);
  			 				IMAQdxCloseCamera(session1);
 
  				frame2 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
- 		 						IMAQdxOpenCamera("cam2", IMAQdxCameraControlModeController, &session2);
+ 		 						IMAQdxOpenCamera("cam4", IMAQdxCameraControlModeController, &session2);
  		 						IMAQdxConfigureGrab(session2);
  		 						IMAQdxStartAcquisition(session2);
  	 					cam=FALSE;
@@ -462,7 +493,6 @@ SmartDashboard::PutBoolean("STOOOOOPP!",stop_arm);
  		SmartDashboard::PutNumber("auto_server", auto_server);
  		SmartDashboard::PutNumber("l_enc", l_enc);
  		SmartDashboard::PutNumber("r_enc", r_enc);
- 		SmartDashboard::PutNumber("shot_enc", shot_enc);
  		SmartDashboard::PutString("Frame Pistions",pistion_server);
  		SmartDashboard::PutString("Ramp Pistions",pistionramp_server);
  	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
@@ -487,11 +517,11 @@ SmartDashboard::PutBoolean("STOOOOOPP!",stop_arm);
  *  	2	B left wheel encoder
  *  	3	A  "
  *  	4	B shooter wheel encoder
- *  	5	A
- *  	6   (bumper frame)
+ *  	5	A "
+ *  	6
  *  	7   (status LED)
- *  	8   arm limit switch (magnetic reed switch)
- *  	9
+ *  	8
+ *  	9 arm limit switch (magnetic reed switch)
  *
  *  	Analog
  *  	0
