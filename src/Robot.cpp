@@ -10,16 +10,20 @@
  private:
 	  	bool nitroL, nitroR,cam_button,cam_button1,ramp_in,ramp_out,cam,cam_switcher;  //DrC, for speed boost in tank drive
 	  	bool pickup_pickup, piston_button,frame_act,button_led, speedgood,piston_button_prev; //DrC
-	  	int i, samples;
+
 	 	double leftgo,rightgo,speed,quality,Arm_in,Arm_out;  //DrC speed scales joysticks output to drive number
-	 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
-	 	double auto_F,auto_server,auto_spin;//E Auto code variables
-	 	int r_enc,l_enc,auto_serversub,arm_dir;
-		bool forward1,to_ramp;//things for auto
+	 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
 		bool Arm_buttonin,Arm_buttonout,stop_arm1,stop_arm2,shooter_shootrev,rumble_button;
 		bool underglow_button,underglow_prev,underglow_sel;
 	  	double shotreader;
-	 	std::string autoSelected;
+
+	 	double auto_F,auto_spin,auto_estop,ayavg,r;//Encoder values
+	 	int r_enc,l_enc,arm_dir;
+		bool forward1,forward1low,to_ramp,spin,auto_fin;//things for auto
+
+
+	  	int i, samples, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0);
+
 
 	  	DoubleSolenoid *piston = new DoubleSolenoid(0,1);
 	  	DoubleSolenoid *piston_ramp = new DoubleSolenoid(2,3);
@@ -69,23 +73,21 @@
 	  	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter);
 	  	RobotDrive *ArmDrive = new RobotDrive(Arm_in,Arm_in,Arm_out,Arm_out);
 
+	 	std::string autoSelected;
 	  	LiveWindow *lw = LiveWindow::GetInstance();
 	  	SendableChooser *chooser = new SendableChooser();
-	  	const std::string autoNameDefault = "Low Bar§";//needs fixed still broken
-	  	const std::string autoNameCustom = "FORWARD!!!!!!";
+	  	const std::string autoNameDefault = "FORWARD!";//needs fixed still broken
+	  	const std::string autoNameCustom = "Low Bar";
 
- 	/*void RobotInit()
+	void RobotInit()
  		{
- 			chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
- 			chooser->AddObject(autoNameCustom, (void*)&autoNameCustom);
- 			SmartDashboard::PutData("Auto Modes", chooser);
- 		}*/
+	chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
+			 			chooser->AddObject(autoNameCustom, (void*)&autoNameCustom);
+			 			SmartDashboard::PutData("Auto Modes", chooser);
+ 		}
 
 	void AutonomousInit()
 	{
-		chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
-		 			chooser->AddObject(autoNameCustom, (void*)&autoNameCustom);
-		 			SmartDashboard::PutData("Auto Modes", chooser);
 
 			autoSelected = *((std::string*)chooser->GetSelected());
 			//std::string autoSelected = SmartDashboard::GetString("Auto Selector", autoNameDefault);
@@ -94,7 +96,7 @@
 			if(autoSelected == autoNameCustom){
 				}
 			 else {
-				//Default Auto goes here
+
 			}
 
 		/*//TEAM DISPLAY
@@ -120,75 +122,101 @@
 		shooterwheel->Reset();
 		rwheel->Reset();
 		lwheel->Reset();
+		r_enc=0;
+		r_enc=0;
+		ay = 0;
 	    howdy->Enabled();
 		piston_ramp->Set(DoubleSolenoid::Value::kOff);
 		piston->Set(DoubleSolenoid::Value::kOff);
 
 		auto_F=68.75;// 68.75in past lowbar ~4296.875
-		auto_spin=3343;//180 spin
+		auto_spin=57.81;//180 spin ~3343
+		auto_estop=90;//e stop is ~9000
 		forward1=0;
+		forward1low=0;
 		to_ramp=0;
+		spin=0;
+		auto_fin=0;
 		cam=0;
-		r_enc=0;
-		r_enc=0;
-		auto_server=Auto_sel->GetValue();
-		cam=FALSE;
+		r = .2 ; // the averaging ratio for the accelerometer readins in auton
+		ayavg=0.0;
 //AUTO
 }
 
  void AutonomousPeriodic()
 	{
+	 ay = accel-> GetY();
+	 ayavg = (1.0-r)*ayavg+r*ay;   // the smoothed, running average of ay...actually solving a DE with a pole at ir!
 		r_enc = abs(rwheel->GetRaw()/360);
 	 	l_enc = abs(lwheel->GetRaw()/360);
 
-	 		if(autoSelected == autoNameCustom){ //forward
+	 		if(autoSelected == autoNameCustom){ //low bar
 
+					if((r_enc<=auto_F)&&(l_enc<=auto_F)&&not forward1low){
+					 rightgo=.5;
+					 leftgo=.5;
+					}
+
+				else if(not forward1low) {
+					 	rwheel->Reset();
+					 	lwheel->Reset();
+					 	forward1low=TRUE;
+					 	auto_fin=0;
+				}
+				else if((r_enc<=auto_spin)&&(l_enc<=auto_spin)&&not spin){
+					 rightgo=.5;
+					 leftgo=-.5;
+				}
+				else if(not spin){
+					rightgo=0;
+					 leftgo=0;
+				rwheel->Reset();
+				lwheel->Reset();
+					spin=TRUE;
+				}
+				else if((r_enc<=auto_estop)&&(l_enc<=auto_estop)&&(not(ayavg>=.05))&&(not auto_fin)){
+						rightgo=-.5;
+						leftgo=-.5;
+				}
+				else{
+					rightgo=0;
+					leftgo=0;
+					auto_fin=1;
+				}
+
+	 				}
+
+
+	 		else{//forward
 	 			if((r_enc<=auto_F)&&(l_enc<=auto_F)&& not forward1){
-	 				rightgo=.5;
-	 			 	leftgo=.5;
-	 				}
+	 				 				rightgo=.5;
+	 				 			 	leftgo=.5;
+	 				 				}
 
-	 				else if(not forward1){
-	 					rightgo=0;
-	 					leftgo=0;
-	 					rwheel->Reset();
-	 					lwheel->Reset();
-	 					forward1=TRUE;
-	 					}
+	 				 				else if(not forward1){
+	 				 					rightgo=0;
+	 				 					leftgo=0;
+	 				 					rwheel->Reset();
+	 				 					lwheel->Reset();
+	 				 					forward1=TRUE;
+	 				 					}
 
-	 				}
-
-
-	 		else{//lowbar
-
-	 					if((r_enc<=auto_F)&&(l_enc<=auto_F)&&not forward1){
-	 					 rightgo=.5;
-	 					 leftgo=.5;
-	 					}
-
-	 				else if(not forward1) {
-	 					 	rightgo=0;
-	 					 	leftgo=0;
-	 					 	rwheel->Reset();
-	 					 	lwheel->Reset();
-	 					 	forward1=TRUE;
-	 				}
 
 
 	 			}
 			robotDrive->TankDrive(rightgo, leftgo);
 
 
-			SmartDashboard::PutNumber("auto_server", auto_server);
 			SmartDashboard::PutNumber("r_enc", r_enc);
 		 	SmartDashboard::PutNumber("l_enc", l_enc);
+		 	SmartDashboard::PutNumber("ayavg", ayavg);
 
-		 	if(not cam){
+		 	/*if(not cam){
 		 	 				IMAQdxStopAcquisition(session2);
 		 	 			 			IMAQdxCloseCamera(session2);
 
 		 	 			 			IMAQdxStopAcquisition(session1);
-		 	 			 			 			 			IMAQdxCloseCamera(session1);
+		 	 			 			 	 IMAQdxCloseCamera(session1);
 		 	 			 				frame1 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
 		 	 			 		 						IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session1);
 		 	 			 		 						IMAQdxConfigureGrab(session1);
@@ -196,7 +224,7 @@
 		 	 				cam=TRUE;
 		 	 			}
 		 	 		IMAQdxGrab(session1, frame1, true, NULL);
-		 	 	CameraServer::GetInstance()->SetImage(frame1);//Elmo
+		 	 	CameraServer::GetInstance()->SetImage(frame1);//Elmo*/
 	 	}
 
  	void TeleopInit()
@@ -471,15 +499,14 @@ SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
  		SmartDashboard::PutNumber("pd", reflectedLight);
  		SmartDashboard::PutNumber("bx", bx_avg);
  		SmartDashboard::PutNumber("by", by_avg);
-
-		SmartDashboard::PutBoolean("cam_switcher", cam_switcher);
- 		SmartDashboard::PutNumber("auto_server", auto_server);
  		SmartDashboard::PutNumber("l_enc", l_enc);
  		SmartDashboard::PutNumber("r_enc", r_enc);
- 		SmartDashboard::PutString("Frame Pistions",pistion_server);
- 		SmartDashboard::PutString("Ramp Pistions",pistionramp_server);
  	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
 
+ 		SmartDashboard::PutString("Ramp Pistions",pistionramp_server);
+ 		SmartDashboard::PutString("Frame Pistions",pistion_server);
+
+ 	 	SmartDashboard::PutBoolean("cam_switcher", cam_switcher);
 
 //SMART DASHPORD
 
