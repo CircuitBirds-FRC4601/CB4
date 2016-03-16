@@ -13,7 +13,7 @@
 	  	int i, samples;
 	 	double leftgo,rightgo,speed,quality,Arm_in,Arm_out;  //DrC speed scales joysticks output to drive number
 	 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
-	 	double auto_F,auto_server,Autolow_F;//E Auto code variables
+	 	double auto_F,auto_server,auto_spin;//E Auto code variables
 	 	int r_enc,l_enc,auto_serversub,arm_dir;
 		bool forward1,to_ramp;//things for auto
 		bool Arm_buttonin,Arm_buttonout,stop_arm1,stop_arm2,shooter_shootrev,rumble_button;
@@ -63,10 +63,10 @@
 		Encoder *lwheel = new Encoder(0,1);
 		Encoder *rwheel = new Encoder(2,3);
 
-		DriverStation::Alliance Team;// I have no Idea why but I seem only able to get the variable to work this way
+		DriverStation::Alliance Team;
 
 	  	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
-	  	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter); //**Arm_in,Arm_out
+	  	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter);
 	  	RobotDrive *ArmDrive = new RobotDrive(Arm_in,Arm_in,Arm_out,Arm_out);
 
 	  	LiveWindow *lw = LiveWindow::GetInstance();
@@ -74,16 +74,19 @@
 	  	const std::string autoNameDefault = "Low Bar§";//needs fixed still broken
 	  	const std::string autoNameCustom = "FORWARD!!!!!!";
 
- 	void RobotInit()
+ 	/*void RobotInit()
  		{
  			chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
  			chooser->AddObject(autoNameCustom, (void*)&autoNameCustom);
  			SmartDashboard::PutData("Auto Modes", chooser);
- 		}
+ 		}*/
 
 	void AutonomousInit()
 	{
-		{
+		chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
+		 			chooser->AddObject(autoNameCustom, (void*)&autoNameCustom);
+		 			SmartDashboard::PutData("Auto Modes", chooser);
+
 			autoSelected = *((std::string*)chooser->GetSelected());
 			//std::string autoSelected = SmartDashboard::GetString("Auto Selector", autoNameDefault);
 			std::cout << "Auto selected: " << autoSelected << std::endl;
@@ -93,7 +96,7 @@
 			 else {
 				//Default Auto goes here
 			}
-		}
+
 		/*//TEAM DISPLAY
 		Team = DriverStation::GetInstance().GetAlliance();//This is if we need to switch the magnatometer around and stuff
 			if(Team==(DriverStation::Alliance::kBlue))
@@ -121,7 +124,8 @@
 		piston_ramp->Set(DoubleSolenoid::Value::kOff);
 		piston->Set(DoubleSolenoid::Value::kOff);
 
-		auto_F=68.75;//50 rotations is about 25 in // 137.5 should get us past the outer works mabey so about 68.75 in so about half a foot past start of outer works
+		auto_F=68.75;// 68.75in past lowbar ~4296.875
+		auto_spin=3343;//180 spin
 		forward1=0;
 		to_ramp=0;
 		cam=0;
@@ -134,8 +138,8 @@
 
  void AutonomousPeriodic()
 	{
-		r_enc = abs(rwheel->GetRaw())/360;
-	 	l_enc = abs(lwheel->GetRaw())/360;
+		r_enc = abs(rwheel->GetRaw()/360);
+	 	l_enc = abs(lwheel->GetRaw()/360);
 
 	 		if(autoSelected == autoNameCustom){ //forward
 
@@ -154,9 +158,10 @@
 
 	 				}
 
-	 			if(autoSelected == autoNameDefault) {//lowbar
 
-	 					if((r_enc<=auto_F)&&(l_enc<=auto_F)&& not forward1){
+	 		else{//lowbar
+
+	 					if((r_enc<=auto_F)&&(l_enc<=auto_F)&&not forward1){
 	 					 rightgo=.5;
 	 					 leftgo=.5;
 	 					}
@@ -169,9 +174,10 @@
 	 					 	forward1=TRUE;
 	 				}
 
-	 			}
 
-	robotDrive->TankDrive(rightgo, leftgo);
+	 			}
+			robotDrive->TankDrive(rightgo, leftgo);
+
 
 			SmartDashboard::PutNumber("auto_server", auto_server);
 			SmartDashboard::PutNumber("r_enc", r_enc);
@@ -228,6 +234,7 @@
  				stop_arm2=1;
  				stop_arm1=1;
  				shotspeed=0;
+
 //TELOP DECLERATIONS
  	}
 
@@ -252,30 +259,15 @@
  //DRIVE CONTROL
   		rightgo = rightDrive-> GetRawAxis(1);
  		leftgo  = leftDrive-> GetRawAxis(1);
+
  		nitroR   = rightDrive-> GetRawButton(3);
  		nitroL   = leftDrive-> GetRawButton(3);
+
  		rightgo = -(speed+(1.0-speed)*(double)(nitroR))*rightgo;
  		leftgo  = -(speed+(1.0-speed)*(double)(nitroL))*leftgo;
 
  		robotDrive->TankDrive(rightgo, leftgo);
 //DRIVE CONTROL
-
-
-/*//STROBEY BIT SECTION
- 		button_led = gamePad->GetRawButton(1);
- 		if(button_led){
- 		reflectedLight = 0.0;  //DrC, the phase sensitive detection signal goes in this variable
- 		  for(i=1;i<samples;i++){   //DrC basic flash sequence
- 			// led1 -> Set(1);
- 			 usleep(100);  //DrC, delay meant to let LED output stabilize a bit.
- 			 strobe_on = Photo -> GetVoltage();
- 			// led1 -> Set(0);
- 			 usleep(100);
- 			 strobe_off = Photo -> GetVoltage();
- 			 reflectedLight = reflectedLight+strobe_on-strobe_off; //DrC summative
- 		  }
- 		}
-//STROBEY BIT SECTION*/
 
 
 // PICKUPWHEEL
@@ -310,9 +302,9 @@
  			}
  			pickupShooter->TankDrive(pickupWheel,shooterWheel);
 
- 			shotreader=rwheel->GetPeriod();
-/*
- 			 		 if(abs(shotreader)<=0.00000){
+ 			shotreader=rwheel->GetRate();
+
+ 			 		 if(abs(shotreader)>=2000){ // this will most likley have to be changed
  			 			 shotspeed=1;
  			 		 }
  			 		else{
@@ -327,12 +319,12 @@
  			  			gamePad->SetRumble(Joystick::RumbleType::kRightRumble,0);
  			  		  	gamePad->SetRumble(Joystick::RumbleType::kLeftRumble,0);
  			  		}
-*/
+
  			  		SmartDashboard::PutNumber("shotreader",shotreader);
 //SHOOTER WHEEL
 
 
- //PISTON CONTROL AREA
+//PISTON CONTROL AREA
  		piston_button_prev = piston_button;
  		piston_button  = leftDrive-> GetRawButton(1);
  		ramp_in=gamePad->GetRawButton(4);
@@ -377,19 +369,12 @@
 	 	}
 
 
-
-
-	/*if(not stop_arm2){
-	 		Arm->Set(-.5*arm_dir);
-	 		usleep(400);
-	 		arm_dir=0;
-	 		}
-	else */if(Arm_buttonin){
- 				Arm->Set(-.25);
+if(Arm_buttonin){
+ 				Arm->Set(-.35);
  				//arm_dir=1;
 			}
  	else if(Arm_buttonout){
- 				Arm->Set(.25);
+ 				Arm->Set(.35);
  				//arm_dir=-1;
  			}
  	else{
@@ -470,8 +455,6 @@ SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
  		az = accel-> GetZ();//DrC  ax ay az used to define down
  		bx = Bx -> GetVoltage();
  		by = By -> GetVoltage();
- 	//	pd = Photo -> GetVoltage();
- 			// here flatten response and assume that robot is level.
  		bx = (bx-boffsetx)*bscalex;
  		bx_avg = bx_avg*(1.0-baveraging)+bx*baveraging;
  		by = (by-boffsety)*bscaley;
@@ -508,8 +491,9 @@ SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
   };
  START_ROBOT_CLASS(Robot)
 /* Hardware map of the robot "Shadow"  (CB4)
- *
- *
+ * 10ft = 7505 lwheel encoder
+ *	10ft= 7495 rwheel encoder
+ * 1ft=~750
  *  RRio Pins
  *  	DIO
  *  	0	A right wheel encoder
@@ -520,8 +504,8 @@ SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
  *  	5	A "
  *  	6
  *  	7   (status LED)
- *  	8
- *  	9 arm limit switch (magnetic reed switch)
+ *  	8 lswitcharm_1
+ *  	9 lswitcharm_2
  *
  *  	Analog
  *  	0
