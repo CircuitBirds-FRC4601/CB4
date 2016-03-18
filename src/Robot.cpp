@@ -129,9 +129,9 @@
 		piston_ramp->Set(DoubleSolenoid::Value::kOff);
 		piston->Set(DoubleSolenoid::Value::kOff);
 
-		auto_F=68.75;// 68.75in past lowbar ~4296.875
-		auto_spin=57.81;//180 spin ~3343
-		auto_estop=90;//e stop is ~9000
+		auto_F=2520;// 68.75in past lowbar ~5040
+		auto_spin=3343;//180 spin ~3343
+		auto_estop=9000;//e stop is ~9000
 		forward1=0;
 		forward1low=0;
 		to_ramp=0;
@@ -147,14 +147,14 @@
 	{
 	 ay = accel-> GetY();
 	 ayavg = (1.0-r)*ayavg+r*ay;   // the smoothed, running average of ay...actually solving a DE with a pole at ir!
-		r_enc = abs(rwheel->GetRaw()/360);
-	 	l_enc = abs(lwheel->GetRaw()/360);
+		r_enc = abs(rwheel->GetRaw());
+	 	l_enc = abs(lwheel->GetRaw());
 
 	 		if(autoSelected == autoNameCustom){ //low bar
 
 					if((r_enc<=auto_F)&&(l_enc<=auto_F)&&not forward1low){
-					 rightgo=.5;
-					 leftgo=.5;
+					 rightgo=.85;
+					 leftgo=.85;
 					}
 
 				else if(not forward1low) {
@@ -164,8 +164,8 @@
 					 	auto_fin=0;
 				}
 				else if((r_enc<=auto_spin)&&(l_enc<=auto_spin)&&not spin){
-					 rightgo=.5;
-					 leftgo=-.5;
+					 rightgo=.85;
+					 leftgo=-.85;
 				}
 				else if(not spin){
 					rightgo=0;
@@ -175,8 +175,8 @@
 					spin=TRUE;
 				}
 				else if((r_enc<=auto_estop)&&(l_enc<=auto_estop)&&(not(ayavg>=.05))&&(not auto_fin)){
-						rightgo=-.5;
-						leftgo=-.5;
+						rightgo=-.85;
+						leftgo=-.85;
 				}
 				else{
 					rightgo=0;
@@ -189,8 +189,8 @@
 
 	 		else{//forward
 	 			if((r_enc<=auto_F)&&(l_enc<=auto_F)&& not forward1){
-	 				 				rightgo=.5;
-	 				 			 	leftgo=.5;
+	 				 				rightgo=.85;
+	 				 			 	leftgo=.85;
 	 				 				}
 
 	 				 				else if(not forward1){
@@ -211,20 +211,20 @@
 		 	SmartDashboard::PutNumber("l_enc", l_enc);
 		 	SmartDashboard::PutNumber("ayavg", ayavg);
 
-		 	/*if(not cam){
+		 	if(not cam){
 		 	 				IMAQdxStopAcquisition(session2);
 		 	 			 			IMAQdxCloseCamera(session2);
 
 		 	 			 			IMAQdxStopAcquisition(session1);
 		 	 			 			 	 IMAQdxCloseCamera(session1);
 		 	 			 				frame1 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
-		 	 			 		 						IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session1);
+		 	 			 		 						IMAQdxOpenCamera("cam4", IMAQdxCameraControlModeController, &session1);
 		 	 			 		 						IMAQdxConfigureGrab(session1);
 		 	 			 		 						IMAQdxStartAcquisition(session1);
 		 	 				cam=TRUE;
 		 	 			}
 		 	 		IMAQdxGrab(session1, frame1, true, NULL);
-		 	 	CameraServer::GetInstance()->SetImage(frame1);//Elmo*/
+		 	 	CameraServer::GetInstance()->SetImage(frame1);//Elmo
 	 	}
 
  	void TeleopInit()
@@ -246,7 +246,7 @@
 // CALIBRATION
 
 //TELOP DECLERATIONS
- 				speed  = .7; //driving speed for finer control
+ 				speed  = 1; //driving speed for finer control
  				shooterwheel->Reset();
  				rwheel->Reset();
  				lwheel->Reset();
@@ -271,8 +271,8 @@
   	void TeleopPeriodic()
   	{
 
-  		r_enc=lwheel->GetRaw();
-  	  	l_enc=rwheel->GetRaw();
+  		r_enc=abs (lwheel->GetRaw());
+  	  	l_enc=abs(rwheel->GetRaw());
 
 /*  		auto_server=Auto_sel->GetValue();  // for testing only
   	 if(auto_server<=300){
@@ -295,6 +295,8 @@
  		leftgo  = -(speed+(1.0-speed)*(double)(nitroL))*leftgo;
 
  		robotDrive->TankDrive(rightgo, leftgo);
+
+
 //DRIVE CONTROL
 
 
@@ -330,9 +332,9 @@
  			}
  			pickupShooter->TankDrive(pickupWheel,shooterWheel);
 
- 			shotreader=rwheel->GetRate();
+ 			shotreader=shooterwheel->GetRate();
 
- 			 		 if(abs(shotreader)>=2000){ // this will most likley have to be changed
+ 			 		 if(abs(shotreader)>=600){ // this will most likley have to be changed
  			 			 shotspeed=1;
  			 		 }
  			 		else{
@@ -398,11 +400,11 @@
 
 
 if(Arm_buttonin){
- 				Arm->Set(-.35);
+ 				Arm->Set(-.25);
  				//arm_dir=1;
 			}
  	else if(Arm_buttonout){
- 				Arm->Set(.35);
+ 				Arm->Set(.25);
  				//arm_dir=-1;
  			}
  	else{
@@ -424,7 +426,7 @@ SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
  			 			IMAQdxStopAcquisition(session1);
  			 			 			 			IMAQdxCloseCamera(session1);
  			 				frame1 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
- 			 		 						IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session1);
+ 			 		 						IMAQdxOpenCamera("cam4", IMAQdxCameraControlModeController, &session1);
  			 		 						IMAQdxConfigureGrab(session1);
  			 		 						IMAQdxStartAcquisition(session1);
  				cam=TRUE;
@@ -440,7 +442,7 @@ SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
  			 				IMAQdxCloseCamera(session1);
 
  				frame2 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
- 		 						IMAQdxOpenCamera("cam4", IMAQdxCameraControlModeController, &session2);
+ 		 						IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session2);
  		 						IMAQdxConfigureGrab(session2);
  		 						IMAQdxStartAcquisition(session2);
  	 					cam=FALSE;
@@ -511,6 +513,7 @@ SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
 //SMART DASHPORD
 
   	}
+
   	void TestPeriodic()
  	{
  		lw->Run();
@@ -518,9 +521,9 @@ SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
   };
  START_ROBOT_CLASS(Robot)
 /* Hardware map of the robot "Shadow"  (CB4)
- * 10ft = 7505 lwheel encoder
- *	10ft= 7495 rwheel encoder
- * 1ft=~750
+ *
+ *
+ * 1ft=~720
  *  RRio Pins
  *  	DIO
  *  	0	A right wheel encoder
