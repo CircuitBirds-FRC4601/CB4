@@ -17,13 +17,14 @@
 		bool underglow_button,underglow_prev,underglow_sel;
 	  	double shotreader;
 
-	 	double auto_F,auto_spin,auto_estop,ayavg,r;//Encoder values
+	 	double auto_F,auto_spin,auto_estop,auto_Fhalf;//Encoder values
 	 	int r_enc,l_enc,arm_dir;
 		bool forward1,forward1low,to_ramp,spin,auto_fin;//things for auto
 
-
-	  	int i, samples, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0);
-
+		bool STOP;
+		double lstick,rstick;
+	  	int i, samples, pi=4.0*atan(1.0);
+	  	double ayavg,r;
 
 	  	DoubleSolenoid *piston = new DoubleSolenoid(0,1);
 	  	DoubleSolenoid *piston_ramp = new DoubleSolenoid(2,3);
@@ -67,8 +68,6 @@
 		Encoder *lwheel = new Encoder(0,1);
 		Encoder *rwheel = new Encoder(2,3);
 
-		DriverStation::Alliance Team;
-
 	  	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
 	  	RobotDrive *pickupShooter = new RobotDrive(pickup, pickup, shooter, shooter);
 	  	RobotDrive *ArmDrive = new RobotDrive(Arm_in,Arm_in,Arm_out,Arm_out);
@@ -76,13 +75,17 @@
 	 	std::string autoSelected;
 	  	LiveWindow *lw = LiveWindow::GetInstance();
 	  	SendableChooser *chooser = new SendableChooser();
-	  	const std::string autoNameDefault = "FORWARD!";//needs fixed still broken
-	  	const std::string autoNameCustom = "Low Bar";
+	  	const std::string autoNameDefault = "FORWARD!";
+	  	const std::string autoNameHalf = "3/4";//is called half but actuly 3/4
+	  	//const std::string autoNameCustom = "Low Bar";
+	  	const std::string autoNameNone = "NONE!";
 
 	void RobotInit()
  		{
 	chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
-			 			chooser->AddObject(autoNameCustom, (void*)&autoNameCustom);
+		chooser->AddObject(autoNameNone, (void*)&autoNameNone);
+		chooser->AddObject(autoNameHalf, (void*)&autoNameHalf);
+	//	chooser->AddObject(autoNameCustom, (void*)&autoNameCustom);
 			 			SmartDashboard::PutData("Auto Modes", chooser);
  		}
 
@@ -90,30 +93,14 @@
 	{
 
 			autoSelected = *((std::string*)chooser->GetSelected());
-			//std::string autoSelected = SmartDashboard::GetString("Auto Selector", autoNameDefault);
+
 			std::cout << "Auto selected: " << autoSelected << std::endl;
 
-			if(autoSelected == autoNameCustom){
+		/*	if(autoSelected == autoNameCustom){
 				}
 			 else {
 
-			}
-
-		/*//TEAM DISPLAY
-		Team = DriverStation::GetInstance().GetAlliance();//This is if we need to switch the magnatometer around and stuff
-			if(Team==(DriverStation::Alliance::kBlue))
-					{
-				SmartDashboard::PutString("Team","Blue!");
-					//mag=normal
-					}
-				else if(Team==(DriverStation::Alliance::kRed)){
-					SmartDashboard::PutString("Team","Red!");
-						//switch the magnetometer value
-						}
-					else{
-						SmartDashboard::PutString("Team","NONE?!");
-						}
-//TEAM DISPLAY*/
+			}*/
 
 
 
@@ -126,10 +113,11 @@
 		r_enc=0;
 		ay = 0;
 	    howdy->Enabled();
-		piston_ramp->Set(DoubleSolenoid::Value::kOff);
+		piston_ramp->Set(DoubleSolenoid::Value::kReverse);
 		piston->Set(DoubleSolenoid::Value::kOff);
 
-		auto_F=2520;// 68.75in past lowbar ~5040
+		auto_F=5400;//to wall is ~5040
+		auto_Fhalf=3780;//actuly 3/4
 		auto_spin=3343;//180 spin ~3343
 		auto_estop=9000;//e stop is ~9000
 		forward1=0;
@@ -150,7 +138,7 @@
 		r_enc = abs(rwheel->GetRaw());
 	 	l_enc = abs(lwheel->GetRaw());
 
-	 		if(autoSelected == autoNameCustom){ //low bar
+	 		/*if(autoSelected == autoNameCustom){ //low bar
 
 					if((r_enc<=auto_F)&&(l_enc<=auto_F)&&not forward1low){
 					 rightgo=.85;
@@ -187,7 +175,7 @@
 	 				}
 
 
-	 		else{//forward
+	 		else*/ if(autoSelected == autoNameDefault){//forward
 	 			if((r_enc<=auto_F)&&(l_enc<=auto_F)&& not forward1){
 	 				 				rightgo=.85;
 	 				 			 	leftgo=.85;
@@ -201,9 +189,28 @@
 	 				 					forward1=TRUE;
 	 				 					}
 
-
-
 	 			}
+
+	 		else if(autoSelected == autoNameNone){//none
+	 			rightgo=0;
+	 			leftgo=0;
+	 		}
+
+	 	else if(autoSelected == autoNameHalf){// three fourth dist
+	 		if((r_enc<=auto_Fhalf)&&(l_enc<=auto_Fhalf)&& not forward1){
+	 			 	rightgo=1;
+	 			 	leftgo=1;
+	 			 			}
+
+	 			 	else if(not forward1){
+	 			 				 	rightgo=0;
+	 			 				 	leftgo=0;
+	 			 				 	rwheel->Reset();
+	 			 				 	lwheel->Reset();
+	 			 				 	forward1=TRUE;
+	 			 				 	}
+
+	 		 	}
 			robotDrive->TankDrive(rightgo, leftgo);
 
 
@@ -214,6 +221,7 @@
 		 	if(not cam){
 		 	 				IMAQdxStopAcquisition(session2);
 		 	 			 			IMAQdxCloseCamera(session2);
+
 
 		 	 			 			IMAQdxStopAcquisition(session1);
 		 	 			 			 	 IMAQdxCloseCamera(session1);
@@ -251,7 +259,7 @@
  				rwheel->Reset();
  				lwheel->Reset();
  				howdy->Enabled();
- 				piston_ramp->Set(DoubleSolenoid::Value::kOff);
+ 				piston_ramp->Set(DoubleSolenoid::Value::kReverse);
  				piston->Set(DoubleSolenoid::Value::kOff);
  				frame_act=FALSE;
  				piston_button_prev=0;
@@ -262,7 +270,8 @@
  				stop_arm2=1;
  				stop_arm1=1;
  				shotspeed=0;
-
+ 				STOP=0;
+ 	 	 r = .2;
 //TELOP DECLERATIONS
  	}
 
@@ -273,19 +282,10 @@
 
   		r_enc=abs (lwheel->GetRaw());
   	  	l_enc=abs(rwheel->GetRaw());
-
-/*  		auto_server=Auto_sel->GetValue();  // for testing only
-  	 if(auto_server<=300){
-	    auto_serversub=1;
-  	 }
-  	 	 else if(auto_server<=800){
-	     auto_serversub=2;
-    }
-  	 	 	 else if(auto_server<=1800){
-	         auto_serversub=3;
-    }*/
+  	  	SmartDashboard::PutNumber("rstick",rstick);
+  	  	SmartDashboard::PutNumber("lstick",lstick);
  //DRIVE CONTROL
-  		rightgo = rightDrive-> GetRawAxis(1);
+  	  	rightgo = rightDrive-> GetRawAxis(1);
  		leftgo  = leftDrive-> GetRawAxis(1);
 
  		nitroR   = rightDrive-> GetRawButton(3);
@@ -294,6 +294,16 @@
  		rightgo = -(speed+(1.0-speed)*(double)(nitroR))*rightgo;
  		leftgo  = -(speed+(1.0-speed)*(double)(nitroL))*leftgo;
 
+ 	/*	FULL=gamePad->GetRawButton(8);
+if(FULL){
+	rightgo=1;
+	leftgo=1;
+}
+else{
+	rightgo=0;
+	leftgo=0;
+
+}*/
  		robotDrive->TankDrive(rightgo, leftgo);
 
 
@@ -305,7 +315,7 @@
  		pickup_pickup = gamePad -> GetRawAxis(3);
 
  	if(abs(pickup_kickballout)>.1){
- 			pickupWheel = 0.7;
+ 			pickupWheel = .75;
  		}
  		else if(pickup_pickup){
  			pickupWheel = -0.7;
@@ -321,11 +331,11 @@
  		shooter_shootrev =gamePad->GetRawButton(5);
 
  		if(shooter_shoot&&not shooter_shootrev){
- 			shooterWheel = -.75;
+ 			shooterWheel = -.8;
 
  		 }
  		else if (not shooter_shoot&&shooter_shootrev){
- 			shooterWheel = .75;
+ 			shooterWheel = .8;
  		}
  			else {
  			shooterWheel = 0.0;
@@ -334,7 +344,7 @@
 
  			shotreader=shooterwheel->GetRate();
 
- 			 		 if(abs(shotreader)>=600){ // this will most likley have to be changed
+ 			 		 if(abs(shotreader)>=900){ // this will most likley have to be changed
  			 			 shotspeed=1;
  			 		 }
  			 		else{
@@ -471,20 +481,16 @@ SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
  		*/
  		underglow_button  = gamePad-> GetRawButton(3);
  		if(underglow_button){
- 		   underglow->Set(Relay::kForward);
- 			}
- 			else{
- 			underglow->Set(Relay::kOff);
- 			}
-//UNDERGLOW
-
+ 		   underglow->Set(Relay::1
 
 //SENSORS
  		ax = accel-> GetX();//DrC   Sensor Section : get orientation of the robot WRT field co-ordinates.
  		ay = accel-> GetY();
+ 	 ayavg = (1.0-r)*ayavg+r*ay;   // the smoothed, running average of ay...actually solving a DE with a pole at ir!
  		az = accel-> GetZ();//DrC  ax ay az used to define down
  		bx = Bx -> GetVoltage();
  		by = By -> GetVoltage();
+
  		bx = (bx-boffsetx)*bscalex;
  		bx_avg = bx_avg*(1.0-baveraging)+bx*baveraging;
  		by = (by-boffsety)*bscaley;
@@ -495,10 +501,10 @@ SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
 
 //SMART DASHPORD
  		SmartDashboard::PutNumber("ax",ax);
- 	    SmartDashboard::PutNumber("ay",ay);
+ 	    SmartDashboard::PutNumber("ayavg",ayavg);
  		SmartDashboard::PutNumber("az",az);
  		SmartDashboard::PutNumber("heading", heading);
- 		SmartDashboard::PutNumber("pd", reflectedLight);
+
  		SmartDashboard::PutNumber("bx", bx_avg);
  		SmartDashboard::PutNumber("by", by_avg);
  		SmartDashboard::PutNumber("l_enc", l_enc);
