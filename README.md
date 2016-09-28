@@ -10,4 +10,4 @@ Please fork this code to make changes.
 - ~~Everyone needs to get a test commit merged.~~
 - ~~Make awesome code and keep our robot "happy".~~
 - ~~Explain what Saros is and why it's such a great developing tool.
-(Seriously, look at it. http://www.saros-project.org/)
+(Seriously, look at it. http://www.saros-project.org/)~~
